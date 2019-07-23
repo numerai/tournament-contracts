@@ -1,0 +1,12 @@
+{
+  "name": "tournament-contracts",
+  "scripts": {
+    "compile": "yarn etherlime compile",
+    "flatten": "yarn etherlime flatten",
+    "deploy": "yarn etherlime deploy ./deployment/deploy.js --compile=true"
+  },
+  "dependencies": {
+    "etherlime": "^2.1.6",
+    "etherlime-lib": "^1.1.2"
+  }
+}
