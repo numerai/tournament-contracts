@@ -102,6 +102,15 @@ contract NumeraiTournamentV2 is Initializable, Pausable {
         );
     }
 
+    /// @notice Initializer function called at time of deployment
+    /// @param _owner The address of the wallet to handle permission control
+    function initialize(
+        address _owner
+    ) public initializer {
+        // initialize the contract's ownership.
+        Pausable.initialize(_owner);
+    }
+
     /////////////////////////////
     // Fund Recovery Functions //
     /////////////////////////////
