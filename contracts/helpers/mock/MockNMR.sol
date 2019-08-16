@@ -46,4 +46,17 @@ contract MockNMR is MockERC20 {
     function numeraiTransfer(address _to, uint256 _value) public returns (bool status) {
         status = _burnFrom(_to, _value);
     }
+
+    function getTournament(uint256 tournamentID) public view returns (
+        uint256 creationTime,
+        uint256[] memory roundIDs
+    ) {
+    }
+
+    function getRound(uint256 tournamentID, uint256 roundID) public view returns (
+        uint256 creationTime,
+        uint256 endTime,
+        uint256 resolutionTime
+    ) {
+    }
 }
