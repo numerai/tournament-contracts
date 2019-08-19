@@ -3,9 +3,8 @@ pragma solidity >=0.5.0 <0.6.0;
 import "./Pausable.sol";
 import "./interfaces/IRelay.sol";
 import "./interfaces/INMR.sol";
-import "./helpers/openzeppelin-eth/math/SafeMath.sol";
 import "./helpers/zos-lib/Initializable.sol";
-import "../OneWayGriefingNoCountdown.sol";
+import "./erasure/agreements/OneWayGriefingNoCountdown.sol";
 
 
 /// @title Numerai Tournament logic contract version 3
