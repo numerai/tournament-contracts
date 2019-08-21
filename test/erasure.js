@@ -17,10 +17,9 @@ describe('Test Erasure agreements', async () => {
         tournamentContract = await contracts.getTournament();
 
         await mockNMRContract.transfer(userAddress, utils.parseEther("100"));
-        await mockNMRContract.transfer(constants.multiSigWallet, utils.parseEther("100"));
     });
 
-    it('should stake', async () => {
+    it('should increaseStake', async () => {
         const stakeAmount = utils.parseEther("10");
         let txn = await tournamentContract.increaseStakeErasure(agreement.contractAddress, userAddress, stakeAmount);
         const receipt = await tournamentContract.verboseWaitForTransaction(txn);
