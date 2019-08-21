@@ -27,10 +27,12 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     }
 
     struct Stake {
-        uint128 amount;
+        // left for compatibility purposes. don't double-store because we are storing stake amount on agreement
+        uint128 amount; 
         uint32 confidence;
         uint128 burnAmount;
         bool resolved;
+        address agreement;
     }
 
     /* /////////////////// */
@@ -136,20 +138,18 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     ///////////////////////
 
     /// @notice A batched version of stakeOnBehalf()
-    /// @param tournamentID The index of the tournament
-    /// @param roundID The index of the tournament round
-    /// @param staker The address of the user
-    /// @param tag The UTF8 character string used to identify the submission
-    /// @param stakeAmount The amount of NMR in wei to stake with this submission
-    /// @param confidence The confidence threshold to submit with this submission
-    function batchStakeOnBehalf(
-        uint256[] calldata tournamentID,
-        uint256[] calldata roundID,
-        address[] calldata staker,
-        bytes32[] calldata tag,
-        uint256[] calldata stakeAmount,
-        uint256[] calldata confidence
-    ) external {
+    /// @param callData ABI-encoded byte string of parameters
+    function batchStakeOnBehalf(bytes calldata callData) external {
+        (
+            uint256[] memory tournamentID,
+            uint256[] memory roundID,
+            address[] memory staker,
+            bytes32[] memory tag,
+            uint256[] memory stakeAmount,
+            uint256[] memory confidence,
+            address[] memory agreement
+        ) = abi.decode(callData, (uint256[], uint256[], address[], bytes32[], uint256[], uint256[], address[]));
+
         uint256 len = tournamentID.length;
         require(
             roundID.length == len &&
@@ -160,7 +160,7 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
             "Inputs must be same length"
         );
         for (uint i = 0; i < len; i++) {
-            stakeOnBehalf(tournamentID[i], roundID[i], staker[i], tag[i], stakeAmount[i], confidence[i]);
+            stakeOnBehalf(tournamentID[i], roundID[i], staker[i], tag[i], stakeAmount[i], confidence[i], agreement[i]);
         }
     }
 
@@ -231,10 +231,31 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         address staker,
         bytes32 tag,
         uint256 stakeAmount,
-        uint256 confidence
+        uint256 confidence,
+        address agreement
     ) public onlyManagerOrOwner whenNotPaused {
-        _stake(tournamentID, roundID, staker, tag, stakeAmount, confidence);
+        _stake(tournamentID, roundID, staker, tag, stakeAmount, confidence, agreement);
         IRelay(_RELAY).withdraw(staker, address(this), stakeAmount);
+    }
+
+    /// @notice Stake a round submission on your own behalf
+    ///         Can be called by anyone
+    /// @param tournamentID The index of the tournament
+    /// @param roundID The index of the tournament round
+    /// @param tag The UTF8 character string used to identify the submission
+    /// @param stakeAmount The amount of NMR in wei to stake with this submission
+    /// @param confidence The confidence threshold to submit with this submission
+    function stake(
+        uint256 tournamentID,
+        uint256 roundID,
+        bytes32 tag,
+        uint256 stakeAmount,
+        uint256 confidence,
+        address agreement
+    ) public whenNotPaused {
+        _stake(tournamentID, roundID, msg.sender, tag, stakeAmount, confidence, agreement);
+        require(INMR(_TOKEN).transferFrom(msg.sender, address(this), stakeAmount),
+            "Stake was not successfully transfered");
     }
 
     /// @notice Transfer NMR on behalf of a Numerai user
@@ -250,29 +271,6 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         uint256 value
     ) public onlyManagerOrOwner whenNotPaused {
         IRelay(_RELAY).withdraw(from, to, value);
-    }
-
-    ////////////////////
-    // User Functions //
-    ////////////////////
-
-    /// @notice Stake a round submission on your own behalf
-    ///         Can be called by anyone
-    /// @param tournamentID The index of the tournament
-    /// @param roundID The index of the tournament round
-    /// @param tag The UTF8 character string used to identify the submission
-    /// @param stakeAmount The amount of NMR in wei to stake with this submission
-    /// @param confidence The confidence threshold to submit with this submission
-    function stake(
-        uint256 tournamentID,
-        uint256 roundID,
-        bytes32 tag,
-        uint256 stakeAmount,
-        uint256 confidence
-    ) public whenNotPaused {
-        _stake(tournamentID, roundID, msg.sender, tag, stakeAmount, confidence);
-        require(INMR(_TOKEN).transferFrom(msg.sender, address(this), stakeAmount),
-            "Stake was not successfully transfered");
     }
 
     /////////////////////////////////////
@@ -300,7 +298,14 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     onlyUint128(burnAmount)
     {
         Stake storage stakeObj = tournaments[tournamentID].rounds[roundID].stakes[staker][tag];
-        uint128 originalStakeAmount = stakeObj.amount;
+
+        address agreementAddress = stakeObj.agreement;
+        OneWayGriefingNoCountdown agreement = OneWayGriefingNoCountdown(agreementAddress);
+
+        // TO FIX
+        // possible downcast since we're storing as uint256 in agreement
+        uint128 originalStakeAmount = uint128(agreement.getStake(staker));
+
         if (burnAmount >= 0x100000000000000000000000000000000)
             burnAmount = originalStakeAmount;
         uint128 releaseAmount = uint128(originalStakeAmount.sub(burnAmount));
@@ -315,15 +320,14 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
             "Cannot resolve before stake deadline"
         );
 
-        stakeObj.amount = 0;
+        stakeObj.amount = 0; // just reset to 0, even though amount is not updated
         stakeObj.burnAmount = uint128(burnAmount);
         stakeObj.resolved = true;
 
-        require(
-            INMR(_TOKEN).transfer(staker, releaseAmount),
-            "Stake was not succesfully released"
-        );
-        _burn(burnAmount);
+        // punish then release the remaining stake amount to the staker
+        require(_punishErasure(agreementAddress, burnAmount), "punish on agreement contract failed");
+
+        require(_releaseStakeErasure(agreementAddress), "releaseStake on agreement contract failed");
 
         totalStaked = totalStaked.sub(originalStakeAmount);
 
@@ -387,28 +391,23 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     /// @dev Calls agreement.reward
     /// @param tournamentID The index of the tournament
     /// @param roundID The index of the tournament round
-    /// @param stakeDeadline The UNIX timestamp deadline for users to stake their submissions
     function rewardAgreement(
         uint256 tournamentID,
         uint256 roundID,
-        uint256 stakeDeadline
+        address staker,
+        bytes32 tag,
+        uint256 rewardAmount
     )
     public
     onlyManagerOrOwner
-    onlyNewRounds(tournamentID, roundID)
-    onlyUint128(stakeDeadline)
     {
-        Tournament storage tournament = tournaments[tournamentID];
-        Round storage round = tournament.rounds[roundID];
+        Stake storage stakeObj = tournaments[tournamentID].rounds[roundID].stakes[staker][tag];
 
-        require(tournament.creationTime > 0, "This tournament must be initialized");
-        require(round.creationTime == 0, "This round must not be initialized");
+        OneWayGriefingNoCountdown agreement = OneWayGriefingNoCountdown(stakeObj.agreement);
 
-        tournament.roundIDs.push(roundID);
-        round.creationTime = uint128(block.timestamp);
-        round.stakeDeadline = uint128(stakeDeadline);
-
-        emit RoundCreated(tournamentID, roundID, stakeDeadline);
+        uint256 currentStake = agreement.getStake(staker);
+        
+        agreement.reward(currentStake, rewardAmount);
     }
 
     //////////////////////
@@ -532,13 +531,12 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         address staker,
         bytes32 tag,
         uint256 stakeAmount,
-        uint256 confidence
+        uint256 confidence,
+        address agreement
     ) internal onlyUint128(stakeAmount) {
         Tournament storage tournament = tournaments[tournamentID];
         Round storage round = tournament.rounds[roundID];
         Stake storage stakeObj = round.stakes[staker][tag];
-
-        uint128 currentStake = stakeObj.amount;
         uint32 currentConfidence = stakeObj.confidence;
 
         require(tournament.creationTime > 0, "This tournament must be initialized");
@@ -547,16 +545,40 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
             uint256(round.stakeDeadline) > block.timestamp,
             "Cannot stake after stake deadline"
         );
-        require(stakeAmount > 0 || currentStake > 0, "Cannot stake zero NMR");
         require(confidence <= 1000000000, "Confidence is capped at 9 decimal places");
         require(currentConfidence <= confidence, "Confidence can only be increased");
 
-        stakeObj.amount = uint128(currentStake.add(stakeAmount));
         stakeObj.confidence = uint32(confidence);
-
-        totalStaked = totalStaked.add(stakeAmount);
+        stakeObj.agreement = agreement;
+        require(_increaseStakeErasure(agreement, staker, stakeAmount), "increaseStake in agreement contract failed");
 
         emit Staked(tournamentID, roundID, staker, tag, stakeObj.amount, confidence);
+    }
+
+    /// @notice Internal function to stake on Erasure agreement
+    /// @param agreement The address of the agreement contract
+    /// @param staker The address of the staker
+    /// @param stakeAmount The amount of NMR in wei to stake with this submission
+    function _increaseStakeErasure(address agreement, address staker, uint256 stakeAmount) internal returns (bool) {
+        OneWayGriefingNoCountdown griefingAgreement = OneWayGriefingNoCountdown(agreement);
+        uint256 currentStake = griefingAgreement.getStake(staker);
+
+        require(stakeAmount > 0 || currentStake > 0, "Cannot stake zero NMR");
+        griefingAgreement.increaseStake(currentStake, stakeAmount);
+        return true;
+    }
+
+    /// @notice Internal function to punish the staker in the agreement contract
+    /// @param agreement The address of the agreement contract
+    /// @param punishment The amount of punishment the staker will receive
+    function _punishErasure(address agreement, uint256 punishment) internal returns (bool) {
+        OneWayGriefingNoCountdown(agreement).punish(address(this), punishment, "");
+        return true;
+    }
+
+    function _releaseStakeErasure(address agreement) internal returns (bool) {
+        OneWayGriefingNoCountdown(agreement).releaseStake();
+        return true;
     }
 
     /// @notice Internal helper function to burn NMR
