@@ -64,6 +64,12 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     event TournamentCreated(
         uint256 indexed tournamentID
     );
+    event IncreaseStakeErasure(
+        address indexed agreement,
+        address indexed staker,
+        uint256 stakeAmount,
+        uint256 oldStakeAmount
+    );
 
     // set the address of the NMR token as a constant (stored in runtime code)
     address private constant _TOKEN = address(
@@ -409,6 +415,22 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         round.stakeDeadline = uint128(stakeDeadline);
 
         emit RoundCreated(tournamentID, roundID, stakeDeadline);
+    }
+
+    /// @notice Internal function to stake on Erasure agreement
+    /// @param agreement The address of the agreement contract
+    /// @param staker The address of the staker
+    /// @param stakeAmount The amount of NMR in wei to stake with this submission
+    function increaseStakeErasure(address agreement, address staker, uint256 stakeAmount) public onlyManagerOrOwner {
+        OneWayGriefingNoCountdown griefingAgreement = OneWayGriefingNoCountdown(agreement);
+        uint256 currentStake = griefingAgreement.getStake(staker);
+
+        require(stakeAmount > 0, "Cannot stake zero NMR");
+        require(IRelay(_RELAY).withdraw(staker, address(this), stakeAmount), "Failed to withdraw");
+        require(INMR(_TOKEN).approve(agreement, stakeAmount), "Failed to approve");
+        griefingAgreement.increaseStake(currentStake, stakeAmount);
+
+        emit IncreaseStakeErasure(agreement, staker, stakeAmount, currentStake);
     }
 
     //////////////////////

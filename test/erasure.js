@@ -7,28 +7,41 @@ const utils = require('ethers').utils;
 
 describe('Test Erasure agreements', async () => {
     let agreement;
-    let mockNmr;
+    let mockNMRContract;
+    let tournamentContract;
     const userAddress = '0x0000000000000000000000000000000000000021';
 
     beforeEach(async () => {
-        agreement = await contracts.deployAgreement(userAddress, constants.multiSigWallet);
-        mockNmr = await contracts.getMockNMR();
+        agreement = await contracts.deployAgreement(userAddress, constants.multiSigWallet, constants.tournamenContractAddress);
+        mockNMRContract = await contracts.getMockNMR();
+        tournamentContract = await contracts.getTournament();
 
-        await mockNmr.transfer(userAddress, utils.parseEther("100"));
-        await mockNmr.transfer(constants.multiSigWallet, utils.parseEther("100"));
+        await mockNMRContract.transfer(userAddress, utils.parseEther("100"));
+        await mockNMRContract.transfer(constants.multiSigWallet, utils.parseEther("100"));
     });
 
     it('should stake', async () => {
-        const contract = contracts.contractFrom(mockNmr, userAddress);
-        let txn = await contract.approve(agreement.contractAddress, utils.parseEther("1"));
-        // const receipt = await mockNmr.verboseWaitForTransaction(txn);
-        console.log("txn", txn);
-        txn = await contracts.contractFrom(agreement, userAddress).increaseStake(0, utils.parseEther("1"));
-    });
+        const stakeAmount = utils.parseEther("10");
+        let txn = await tournamentContract.increaseStakeErasure(agreement.contractAddress, userAddress, stakeAmount);
+        const receipt = await tournamentContract.verboseWaitForTransaction(txn);
+        const stakeEvent = receipt.events.find(
+            emittedEvent => emittedEvent.event === "IncreaseStakeErasure",
+            "There is no such event"
+        );
 
-    it('should reward', async () => {
-        const contract = contracts.contractFrom(mockNmr, constants.multiSigWallet);
-        await contract.approve(agreement.contractAddress, utils.parseEther("1"));
-        const txn = await contracts.contractFrom(agreement, constants.multiSigWallet).reward(0, utils.parseEther("1"));
+        assert.isDefined(stakeEvent);
+        assert.equal(stakeEvent.args.agreement, agreement.contractAddress);
+        assert.equal(stakeEvent.args.staker, userAddress);
+        assert.strictEqual(
+            stakeEvent.args.stakeAmount.toString(),
+            stakeAmount.toString(),
+        );
+        assert.strictEqual(
+            stakeEvent.args.oldStakeAmount.toString(),
+            "0",
+        );
+
+        let balance = await mockNMRContract.balanceOf(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("90").toString(), 'balance is wrong for user');
     });
 });
