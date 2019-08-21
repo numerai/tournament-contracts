@@ -10,14 +10,13 @@ import "../modules/Template.sol";
 
 /* Immediately engage with specific buyer
  * - Stake can be increased at any time.
- * - Request to end agreement and recover stake requires cooldown period to complete.
  * - Counterparty can greif the staker at predefined ratio.
  *
  * NOTE:
  * - This top level contract should only perform access control and state transitions
  *
  */
-contract OneWayGriefing is Countdown, Griefing, Metadata, Operated, Template {
+contract SimpleGriefing is Griefing, Metadata, Operated, Template {
 
     using SafeMath for uint256;
 
@@ -34,7 +33,6 @@ contract OneWayGriefing is Countdown, Griefing, Metadata, Operated, Template {
         address counterparty,
         uint256 ratio,
         Griefing.RatioType ratioType,
-        uint256 countdownLength,
         bytes memory staticMetadata
     ) public initializeTemplate() {
         // set storage values
@@ -52,9 +50,6 @@ contract OneWayGriefing is Countdown, Griefing, Metadata, Operated, Template {
 
         // set griefing ratio
         Griefing._setRatio(staker, ratio, ratioType);
-
-        // set countdown length
-        Countdown._setLength(countdownLength);
 
         // set static metadata
         Metadata._setStaticMetadata(staticMetadata);
@@ -74,9 +69,6 @@ contract OneWayGriefing is Countdown, Griefing, Metadata, Operated, Template {
         // restrict access
         require(isStaker(msg.sender) || Operated.isActiveOperator(msg.sender), "only staker or active operator");
 
-        // require agreement is not ended
-        require(!Countdown.isOver(), "agreement ended");
-
         // add stake
         Staking._addStake(_data.staker, msg.sender, currentStake, amountToAdd);
     }
@@ -84,9 +76,6 @@ contract OneWayGriefing is Countdown, Griefing, Metadata, Operated, Template {
     function reward(uint256 currentStake, uint256 amountToAdd) public {
         // restrict access
         require(isCounterparty(msg.sender) || Operated.isActiveOperator(msg.sender), "only counterparty or active operator");
-
-        // require agreement is not ended
-        require(!Countdown.isOver(), "agreement ended");
 
         // add stake
         Staking._addStake(_data.staker, msg.sender, currentStake, amountToAdd);
@@ -96,33 +85,16 @@ contract OneWayGriefing is Countdown, Griefing, Metadata, Operated, Template {
         // restrict access
         require(isCounterparty(msg.sender) || Operated.isActiveOperator(msg.sender), "only counterparty or active operator");
 
-        // require agreement is not ended
-        require(!Countdown.isOver(), "agreement ended");
-
         // execute griefing
         cost = Griefing._grief(from, _data.staker, punishment, message);
     }
 
-    function startCountdown() public returns (uint256 deadline) {
+    function releaseStake() public returns (uint256 amount) {
         // restrict access
-        require(isStaker(msg.sender) || Operated.isActiveOperator(msg.sender), "only staker or active operator");
+        require(isCounterparty(msg.sender) || Operated.isActiveOperator(msg.sender), "only counterparty or active operator");
 
-        // require countdown is not started
-        require(Deadline.getDeadline() == 0, "deadline already set");
-
-        // start countdown
-        deadline = Countdown._start();
-    }
-
-    function retrieveStake(address recipient) public returns (uint256 amount) {
-        // restrict access
-        require(isStaker(msg.sender) || Operated.isActiveOperator(msg.sender), "only staker or active operator");
-
-        // require deadline is passed
-        require(Deadline.isAfterDeadline(),"deadline not passed");
-
-        // retrieve stake
-        amount = Staking._takeFullStake(_data.staker, recipient);
+        // release stake back to the staker
+        amount = Staking._takeFullStake(_data.staker, _data.staker);
     }
 
     function transferOperator(address operator) public {

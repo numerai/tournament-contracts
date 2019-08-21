@@ -7,7 +7,7 @@ const ethers = require('ethers');
 const NumeraiTournament = require('../../build/NumeraiTournamentV3.json');
 const Relay = require('../../build/Relay.json');
 const MockNMR = require('../../build/MockNMR.json');
-const OneWayGriefing = require('../../build/OneWayGriefingNoCountdown.json');
+const OneWayGriefing = require('../../build/SimpleGriefing.json');
 
 async function increaseNonce(signer, increaseTo) {
     const currentNonce = await signer.getTransactionCount();

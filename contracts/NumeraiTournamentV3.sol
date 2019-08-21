@@ -4,7 +4,7 @@ import "./Pausable.sol";
 import "./interfaces/IRelay.sol";
 import "./interfaces/INMR.sol";
 import "./helpers/zos-lib/Initializable.sol";
-import "./erasure/agreements/OneWayGriefingNoCountdown.sol";
+import "./erasure/agreements/SimpleGriefing.sol";
 
 
 /// @title Numerai Tournament logic contract version 3
@@ -422,7 +422,7 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     /// @param staker The address of the staker
     /// @param stakeAmount The amount of NMR in wei to stake with this submission
     function increaseStakeErasure(address agreement, address staker, uint256 stakeAmount) public onlyManagerOrOwner {
-        OneWayGriefingNoCountdown griefingAgreement = OneWayGriefingNoCountdown(agreement);
+        SimpleGriefing griefingAgreement = SimpleGriefing(agreement);
         uint256 currentStake = griefingAgreement.getStake(staker);
 
         require(stakeAmount > 0, "Cannot stake zero NMR");
