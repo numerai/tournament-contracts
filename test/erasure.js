@@ -21,15 +21,14 @@ describe("Test Erasure agreements", async () => {
   });
 
   it("should stake", async () => {
-    const contract = contracts.contractFrom(mockNmr, userAddress);
+    const contract = contracts.contractFrom(mockNmr, constants.multiSigWallet);
     let txn = await contract.approve(
       agreement.contractAddress,
       utils.parseEther("1")
     );
     // const receipt = await mockNmr.verboseWaitForTransaction(txn);
-    console.log("txn", txn);
     txn = await contracts
-      .contractFrom(agreement, userAddress)
+      .contractFrom(agreement, constants.multiSigWallet)
       .increaseStake(0, utils.parseEther("1"));
   });
 

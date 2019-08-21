@@ -127,7 +127,7 @@ async function deployAgreement(staker, counterparty) {
   // 4 = Inf griefing type
   await contract.initialize(
     constants.nmrContractAddress,
-    ethers.constants.AddressZero,
+    constants.multiSigWallet,
     staker,
     counterparty,
     0,
