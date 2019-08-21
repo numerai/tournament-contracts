@@ -104,12 +104,15 @@ async function getRelay() {
     return await _relayContract;
 }
 
-async function deployAgreement(staker, counterparty) {
+async function deployAgreement(staker, counterparty, operator) {
     const deployer = new etherlime.EtherlimeGanacheDeployer(constants.fundedAccountPrivateKey);
 
     const contract = await deployer.deploy(OneWayGriefing, {});
     // 4 = Inf griefing type
-    await contract.initialize(constants.nmrContractAddress, ethers.constants.AddressZero, staker, counterparty, 0, 4, '0x0');
+    if (!operator) {
+        operator = ethers.constants.AddressZero;
+    }
+    await contract.initialize(constants.nmrContractAddress, operator, staker, counterparty, 0, 4, '0x0');
     return contract;
 }
 
