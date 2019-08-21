@@ -1,77 +1,124 @@
+const constants = require("./helpers/constants");
+const contracts = require("./helpers/contracts");
 
-const constants = require('./helpers/constants');
-const contracts = require('./helpers/contracts');
+const utils = require("ethers").utils;
 
-const utils = require('ethers').utils;
+describe("Test stake flow", () => {
+  const roundDeadline = 1881269948;
+  let tournamentContract;
+  let nmrContract;
+  before(async () => {
+    tournamentContract = await contracts.getTournament();
+    nmrContract = await contracts.getMockNMR();
+  });
 
-describe('Test stake flow', () => {
-    const roundDeadline = 1881269948;
-    let tournamentContract;
-    let nmrContract;
-    before(async () => {
-        tournamentContract = await contracts.getTournament();
-        nmrContract = await contracts.getMockNMR();
-    })
+  it("should create tournament", async () => {
+    await tournamentContract.createTournament(1);
 
-    it('should create tournament', async () => {
-        await tournamentContract.createTournament(1);
+    const tournament = await tournamentContract.getTournamentV2(1);
+    assert.isOk(tournament.creationTime, "tournament not set");
+  });
 
-        const tournament = await tournamentContract.getTournamentV2(1);
-        assert.isOk(tournament.creationTime, 'tournament not set');
-    });
+  it("should revert duplicate tournament", async () => {
+    await assert.revertWith(
+      tournamentContract.createTournament(1),
+      "Tournament must not already be initialized"
+    );
+  });
 
-    it('should revert duplicate tournament', async () => {
-        await assert.revertWith(tournamentContract.createTournament(1), "Tournament must not already be initialized");
-    });
+  it("should create round", async () => {
+    await tournamentContract.createRound(1, 1, roundDeadline);
 
-    it('should create round', async () => {
-        await tournamentContract.createRound(1, 1, roundDeadline);
+    const round = await tournamentContract.getRoundV2(1, 1);
+    assert.equal(round.stakeDeadline, roundDeadline, "round not set");
+  });
 
-        const round = await tournamentContract.getRoundV2(1, 1);
-        assert.equal(round.stakeDeadline, roundDeadline, 'round not set');
-    });
+  it("should revert duplicate round", async () => {
+    await assert.revertWith(
+      tournamentContract.createRound(1, 1, roundDeadline),
+      "roundID must be increasing"
+    );
+  });
 
-    it('should revert duplicate round', async () => {
-        await assert.revertWith(tournamentContract.createRound(1, 1, roundDeadline), "roundID must be increasing");
-    });
+  it("should fail create stake without approve", async () => {
+    const tag = utils.formatBytes32String("");
 
-    it('should fail create stake without approve', async () => {
-        const tag = utils.formatBytes32String('');
+    await assert.revertWith(
+      tournamentContract.stake(1, 1, tag, utils.parseEther("1"), 0),
+      "insufficient allowance"
+    );
 
-        await assert.revertWith(tournamentContract.stake(1, 1, tag, utils.parseEther("1"), 0), "insufficient allowance");
+    const stake = await tournamentContract.getStakeV2(
+      1,
+      1,
+      constants.multiSigWallet,
+      tag
+    );
+    assert.equal(stake.amount, 0, "stake not set");
+  });
 
-        const stake = await tournamentContract.getStakeV2(1, 1, constants.multiSigWallet, tag);
-        assert.equal(stake.amount, 0, 'stake not set');
-    });
+  it("should create stake", async () => {
+    const tag = utils.formatBytes32String("");
 
-    it('should create stake', async () => {
-        const tag = utils.formatBytes32String('');
+    await nmrContract
+      .from(nmrContract.signer)
+      .approve(tournamentContract.contractAddress, utils.parseEther("1"));
+    await tournamentContract
+      .from(nmrContract.signer)
+      .stake(1, 1, tag, utils.parseEther("1"), 0);
 
-        await nmrContract.from(nmrContract.signer).approve(tournamentContract.contractAddress, utils.parseEther("1"))
-        await tournamentContract.from(nmrContract.signer).stake(1, 1, tag, utils.parseEther("1"), 0);
+    const stake = await tournamentContract.getStakeV2(
+      1,
+      1,
+      constants.nmrTokenDeployer,
+      tag
+    );
+    assert.strictEqual(
+      stake.amount.toString(),
+      utils.parseEther("1").toString(),
+      "stake not set"
+    );
+  });
 
-        const stake = await tournamentContract.getStakeV2(1, 1, constants.nmrTokenDeployer, tag);
-        assert.strictEqual(stake.amount.toString(), utils.parseEther("1").toString(), 'stake not set');
-    });
+  it("should stakeOnBehalf fail with no balance", async () => {
+    const tag = utils.formatBytes32String("");
+    const staker = "0x0000000000000000000000000000000000000100";
 
-    it('should stakeOnBehalf fail with no balance', async () => {
-        const tag = utils.formatBytes32String('');
-        const staker = '0x0000000000000000000000000000000000000100';
+    await assert.revertWith(
+      tournamentContract.stakeOnBehalf(
+        1,
+        1,
+        staker,
+        tag,
+        utils.parseEther("1"),
+        0
+      ),
+      ""
+    );
 
-        await assert.revertWith(tournamentContract.stakeOnBehalf(1, 1, staker, tag, utils.parseEther("1"), 0), "");
+    const stake = await tournamentContract.getStakeV2(1, 1, staker, tag);
+    assert.equal(stake.amount, 0, "stake not set");
+  });
 
-        const stake = await tournamentContract.getStakeV2(1, 1, staker, tag);
-        assert.equal(stake.amount, 0, 'stake not set');
-    });
+  it("should stakeOnBehalf", async () => {
+    const tag = utils.formatBytes32String("");
+    const staker = "0x0000000000000000000000000000000000000100";
 
-    it('should stakeOnBehalf', async () => {
-        const tag = utils.formatBytes32String('');
-        const staker = '0x0000000000000000000000000000000000000100';
+    await nmrContract.transfer(staker, utils.parseEther("2"));
+    await tournamentContract.stakeOnBehalf(
+      1,
+      1,
+      staker,
+      tag,
+      utils.parseEther("1"),
+      0
+    );
 
-        await nmrContract.transfer(staker, utils.parseEther("2"));
-        await tournamentContract.stakeOnBehalf(1, 1, staker, tag, utils.parseEther("1"), 0);
-
-        const stake = await tournamentContract.getStakeV2(1, 1, staker, tag);
-        assert.strictEqual(stake.amount.toString(), utils.parseEther("1").toString(), 'stake not set');
-    });
+    const stake = await tournamentContract.getStakeV2(1, 1, staker, tag);
+    assert.strictEqual(
+      stake.amount.toString(),
+      utils.parseEther("1").toString(),
+      "stake not set"
+    );
+  });
 });
