@@ -7,9 +7,16 @@ describe("Test stake flow", () => {
   const roundDeadline = 1881269948;
   let tournamentContract;
   let nmrContract;
+  let agreementContract;
+
   before(async () => {
     tournamentContract = await contracts.getTournament();
     nmrContract = await contracts.getMockNMR();
+    agreementContract = await contracts.deployAgreement(
+      tournamentContract.contractAddress, // operator
+      constants.nmrTokenDeployer, // staker
+      tournamentContract.contractAddress // counterparty
+    );
   });
 
   it("should create tournament", async () => {
@@ -44,7 +51,16 @@ describe("Test stake flow", () => {
     const tag = utils.formatBytes32String("");
 
     await assert.revertWith(
-      tournamentContract.stake(1, 1, tag, utils.parseEther("1"), 0),
+      contracts
+        .contractFrom(tournamentContract, constants.nmrTokenDeployer)
+        .stake(
+          1,
+          1,
+          tag,
+          utils.parseEther("1"),
+          0,
+          agreementContract.contractAddress
+        ),
       "insufficient allowance"
     );
 
@@ -60,12 +76,19 @@ describe("Test stake flow", () => {
   it("should create stake", async () => {
     const tag = utils.formatBytes32String("");
 
-    await nmrContract
-      .from(nmrContract.signer)
+    await contracts
+      .contractFrom(nmrContract, constants.nmrTokenDeployer)
       .approve(tournamentContract.contractAddress, utils.parseEther("1"));
-    await tournamentContract
-      .from(nmrContract.signer)
-      .stake(1, 1, tag, utils.parseEther("1"), 0);
+    await contracts
+      .contractFrom(tournamentContract, constants.nmrTokenDeployer)
+      .stake(
+        1,
+        1,
+        tag,
+        utils.parseEther("1"),
+        0,
+        agreementContract.contractAddress
+      );
 
     const stake = await tournamentContract.getStakeV2(
       1,
@@ -91,7 +114,8 @@ describe("Test stake flow", () => {
         staker,
         tag,
         utils.parseEther("1"),
-        0
+        0,
+        agreementContract.contractAddress
       ),
       ""
     );
@@ -111,7 +135,8 @@ describe("Test stake flow", () => {
       staker,
       tag,
       utils.parseEther("1"),
-      0
+      0,
+      agreementContract.contractAddress
     );
 
     const stake = await tournamentContract.getStakeV2(1, 1, staker, tag);

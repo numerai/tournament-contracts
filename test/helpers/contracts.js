@@ -118,7 +118,7 @@ async function getRelay() {
   return await _relayContract;
 }
 
-async function deployAgreement(staker, counterparty) {
+async function deployAgreement(operator, staker, counterparty) {
   const deployer = new etherlime.EtherlimeGanacheDeployer(
     constants.fundedAccountPrivateKey
   );
@@ -127,7 +127,7 @@ async function deployAgreement(staker, counterparty) {
   // 4 = Inf griefing type
   await contract.initialize(
     constants.nmrContractAddress,
-    constants.multiSigWallet,
+    operator,
     staker,
     counterparty,
     0,

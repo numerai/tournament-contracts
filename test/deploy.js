@@ -3,7 +3,9 @@ const constants = require('./helpers/constants');
 
 const utils = require('ethers').utils;
 
-describe('Setup Accounts And Deploy Contracts', async () => {
+describe('Setup Accounts And Deploy Contracts', function() {
+    this.timeout(4000);
+
     it('should deploy mockNMR', async () => {
         const contract = await contracts.getMockNMR();
         const balance = await contract.balanceOf('0x0000000000000000000000000000000000000001');
@@ -23,7 +25,7 @@ describe('Setup Accounts And Deploy Contracts', async () => {
     });
 
     it('should deploy agreement', async () => {
-        const contract = await contracts.deployAgreement(constants.multiSigWallet, constants.tournamenContractAddress);
+        const contract = await contracts.deployAgreement(constants.multiSigWallet, constants.multiSigWallet, constants.tournamenContractAddress);
         const isStaker = await contract.isStaker(constants.multiSigWallet);
         assert.strictEqual(isStaker, true, 'Agreement staker is wrong');
     });

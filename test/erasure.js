@@ -11,6 +11,7 @@ describe("Test Erasure agreements", async () => {
 
   beforeEach(async () => {
     agreement = await contracts.deployAgreement(
+      constants.multiSigWallet,
       userAddress,
       constants.multiSigWallet
     );
