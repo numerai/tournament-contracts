@@ -420,10 +420,10 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     /// @notice Internal function to stake on Erasure agreement
     /// @param agreement The address of the agreement contract
     /// @param staker The address of the staker
-    /// @param stakeAmount The amount of NMR in wei to stake with this submission
-    function increaseStakeErasure(address agreement, address staker, uint256 stakeAmount) public onlyManagerOrOwner {
+    /// @param stakeAmount The amount of NMR in wei already staked on the agreement
+    /// @param stakeAmount The amount of NMR in wei to incease the stake with this agreement
+    function increaseStakeErasure(address agreement, address staker, uint256 currentStake, uint256 stakeAmount) public onlyManagerOrOwner {
         SimpleGriefing griefingAgreement = SimpleGriefing(agreement);
-        uint256 currentStake = griefingAgreement.getStake(staker);
 
         require(stakeAmount > 0, "Cannot stake zero NMR");
         require(IRelay(_RELAY).withdraw(staker, address(this), stakeAmount), "Failed to withdraw");
