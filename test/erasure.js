@@ -21,7 +21,7 @@ describe('Test Erasure agreements', async () => {
 
     it('should increaseStake', async () => {
         const stakeAmount = utils.parseEther("10");
-        let txn = await tournamentContract.increaseStakeErasure(agreement.contractAddress, userAddress, stakeAmount);
+        let txn = await tournamentContract.increaseStakeErasure(agreement.contractAddress, userAddress, 0, stakeAmount);
         const receipt = await tournamentContract.verboseWaitForTransaction(txn);
         const stakeEvent = receipt.events.find(
             emittedEvent => emittedEvent.event === "IncreaseStakeErasure",
