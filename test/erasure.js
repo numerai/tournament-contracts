@@ -17,6 +17,7 @@ describe('Test Erasure agreements', async () => {
         tournamentContract = await contracts.getTournament();
 
         await mockNMRContract.transfer(userAddress, utils.parseEther("100"));
+        await mockNMRContract.transfer(constants.multiSigWallet, utils.parseEther("100"));
     });
 
     it('should increaseStake', async () => {
@@ -32,7 +33,7 @@ describe('Test Erasure agreements', async () => {
         assert.equal(stakeEvent.args.agreement, agreement.contractAddress);
         assert.equal(stakeEvent.args.staker, userAddress);
         assert.strictEqual(
-            stakeEvent.args.stakeAmount.toString(),
+            stakeEvent.args.amountAdded.toString(),
             stakeAmount.toString(),
         );
         assert.strictEqual(
@@ -42,5 +43,29 @@ describe('Test Erasure agreements', async () => {
 
         let balance = await mockNMRContract.balanceOf(userAddress);
         assert.strictEqual(balance.toString(), utils.parseEther("90").toString(), 'balance is wrong for user');
+    });
+
+    it('should rewardStake', async () => {
+        const amountToAdd = utils.parseEther("5");
+
+        await contracts.contractFrom(mockNMRContract, constants.multiSigWallet).approve(tournamentContract.contractAddress, amountToAdd);
+        let txn = await tournamentContract.rewardStakeErasure(agreement.contractAddress, userAddress, 0, amountToAdd);
+        const receipt = await tournamentContract.verboseWaitForTransaction(txn);
+        const stakeEvent = receipt.events.find(
+            emittedEvent => emittedEvent.event === "RewardStakeErasure",
+            "There is no such event"
+        );
+
+        assert.isDefined(stakeEvent);
+        assert.equal(stakeEvent.args.agreement, agreement.contractAddress);
+        assert.equal(stakeEvent.args.staker, userAddress);
+        assert.strictEqual(
+            stakeEvent.args.amountAdded.toString(),
+            utils.parseEther("5").toString(),
+        );
+        assert.strictEqual(
+            stakeEvent.args.oldStakeAmount.toString(),
+            "0",
+        );
     });
 });

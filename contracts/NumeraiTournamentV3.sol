@@ -67,8 +67,14 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     event IncreaseStakeErasure(
         address indexed agreement,
         address indexed staker,
-        uint256 stakeAmount,
-        uint256 oldStakeAmount
+        uint256 oldStakeAmount,
+        uint256 amountAdded
+    );
+    event RewardStakeErasure(
+        address indexed agreement,
+        address indexed staker,
+        uint256 oldStakeAmount,
+        uint256 amountAdded
     );
 
     // set the address of the NMR token as a constant (stored in runtime code)
@@ -389,38 +395,10 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         emit RoundCreated(tournamentID, roundID, stakeDeadline);
     }
 
-    /// @notice Reward an agreement
-    /// @dev Calls agreement.reward
-    /// @param tournamentID The index of the tournament
-    /// @param roundID The index of the tournament round
-    /// @param stakeDeadline The UNIX timestamp deadline for users to stake their submissions
-    function rewardAgreement(
-        uint256 tournamentID,
-        uint256 roundID,
-        uint256 stakeDeadline
-    )
-    public
-    onlyManagerOrOwner
-    onlyNewRounds(tournamentID, roundID)
-    onlyUint128(stakeDeadline)
-    {
-        Tournament storage tournament = tournaments[tournamentID];
-        Round storage round = tournament.rounds[roundID];
-
-        require(tournament.creationTime > 0, "This tournament must be initialized");
-        require(round.creationTime == 0, "This round must not be initialized");
-
-        tournament.roundIDs.push(roundID);
-        round.creationTime = uint128(block.timestamp);
-        round.stakeDeadline = uint128(stakeDeadline);
-
-        emit RoundCreated(tournamentID, roundID, stakeDeadline);
-    }
-
     /// @notice Internal function to stake on Erasure agreement
     /// @param agreement The address of the agreement contract
     /// @param staker The address of the staker
-    /// @param stakeAmount The amount of NMR in wei already staked on the agreement
+    /// @param currentStake The amount of NMR in wei already staked on the agreement
     /// @param stakeAmount The amount of NMR in wei to incease the stake with this agreement
     function increaseStakeErasure(address agreement, address staker, uint256 currentStake, uint256 stakeAmount) public onlyManagerOrOwner {
         SimpleGriefing griefingAgreement = SimpleGriefing(agreement);
@@ -430,7 +408,23 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         require(INMR(_TOKEN).approve(agreement, stakeAmount), "Failed to approve");
         griefingAgreement.increaseStake(currentStake, stakeAmount);
 
-        emit IncreaseStakeErasure(agreement, staker, stakeAmount, currentStake);
+        emit IncreaseStakeErasure(agreement, staker, currentStake, stakeAmount);
+    }
+
+    /// @notice Internal function to reward an Erasure agreement. This function assumes the caller has already approved this contract to transfer NMR.
+    /// @param agreement The address of the agreement contract
+    /// @param staker The address of the staker
+    /// @param currentStake The amount of NMR in wei already staked on the agreement
+    /// @param amountToAdd The amount of NMR in wei to reward the stake with this agreement
+    function rewardStakeErasure(address agreement, address staker, uint256 currentStake, uint256 amountToAdd) public onlyManagerOrOwner {
+        SimpleGriefing griefingAgreement = SimpleGriefing(agreement);
+
+        require(amountToAdd > 0, "Cannot reward zero NMR");
+        require(INMR(_TOKEN).transferFrom(msg.sender, address(this), amountToAdd), "Failed to transferFrom");
+        require(INMR(_TOKEN).approve(agreement, amountToAdd), "Failed to approve");
+        griefingAgreement.reward(currentStake, amountToAdd);
+
+        emit RewardStakeErasure(agreement, staker, currentStake, amountToAdd);
     }
 
     //////////////////////
