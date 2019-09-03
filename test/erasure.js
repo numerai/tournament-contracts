@@ -32,7 +32,7 @@ describe('Test Erasure agreements', async () => {
         assert.equal(stakeEvent.args.agreement, agreement.contractAddress);
         assert.equal(stakeEvent.args.staker, userAddress);
         assert.strictEqual(
-            stakeEvent.args.stakeAmount.toString(),
+            stakeEvent.args.amountAdded.toString(),
             stakeAmount.toString(),
         );
         assert.strictEqual(
