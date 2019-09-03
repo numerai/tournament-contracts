@@ -217,4 +217,11 @@ contract MockERC20 is IERC20 {
         emit Transfer(_from, _to, _value);
         return true;
     }
+
+    function changeApproval(address _spender, uint256 _oldValue, uint256 _newValue) public returns (bool ok) {
+        require(_allowances[msg.sender][_spender] == _oldValue, "balance does not match");
+
+        _approve(msg.sender, _spender, _newValue);
+        return true;
+    }
 }

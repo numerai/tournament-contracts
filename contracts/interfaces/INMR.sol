@@ -49,4 +49,5 @@ interface INMR {
 
     function getStake(uint256 _tournamentID, uint256 _roundID, address _staker, bytes32 _tag) external view returns (uint256, uint256, bool, bool);
 
+    function changeApproval(address _spender, uint256 _oldValue, uint256 _newValue) external returns (bool ok);
 }

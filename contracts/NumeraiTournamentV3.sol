@@ -389,34 +389,6 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         emit RoundCreated(tournamentID, roundID, stakeDeadline);
     }
 
-    /// @notice Reward an agreement
-    /// @dev Calls agreement.reward
-    /// @param tournamentID The index of the tournament
-    /// @param roundID The index of the tournament round
-    /// @param stakeDeadline The UNIX timestamp deadline for users to stake their submissions
-    function rewardAgreement(
-        uint256 tournamentID,
-        uint256 roundID,
-        uint256 stakeDeadline
-    )
-    public
-    onlyManagerOrOwner
-    onlyNewRounds(tournamentID, roundID)
-    onlyUint128(stakeDeadline)
-    {
-        Tournament storage tournament = tournaments[tournamentID];
-        Round storage round = tournament.rounds[roundID];
-
-        require(tournament.creationTime > 0, "This tournament must be initialized");
-        require(round.creationTime == 0, "This round must not be initialized");
-
-        tournament.roundIDs.push(roundID);
-        round.creationTime = uint128(block.timestamp);
-        round.stakeDeadline = uint128(stakeDeadline);
-
-        emit RoundCreated(tournamentID, roundID, stakeDeadline);
-    }
-
     /// @notice Internal function to stake on Erasure agreement
     /// @param agreement The address of the agreement contract
     /// @param staker The address of the staker
@@ -426,8 +398,13 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         SimpleGriefing griefingAgreement = SimpleGriefing(agreement);
 
         require(stakeAmount > 0, "Cannot stake zero NMR");
+
         require(IRelay(_RELAY).withdraw(staker, address(this), stakeAmount), "Failed to withdraw");
-        require(INMR(_TOKEN).approve(agreement, stakeAmount), "Failed to approve");
+
+        uint256 oldAllowance = INMR(_TOKEN).allowance(address(this), agreement);
+        uint256 newAmount = oldAllowance + stakeAmount;
+        require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAmount), "Failed to approve");
+
         griefingAgreement.increaseStake(currentStake, stakeAmount);
 
         emit IncreaseStakeErasure(agreement, staker, stakeAmount, currentStake);
