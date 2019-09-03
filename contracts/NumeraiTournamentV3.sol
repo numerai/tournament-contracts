@@ -67,8 +67,8 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     event IncreaseStakeErasure(
         address indexed agreement,
         address indexed staker,
-        uint256 stakeAmount,
-        uint256 oldStakeAmount
+        uint256 oldStakeAmount,
+        uint256 amountAdded
     );
 
     // set the address of the NMR token as a constant (stored in runtime code)
@@ -407,7 +407,7 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
 
         griefingAgreement.increaseStake(currentStake, stakeAmount);
 
-        emit IncreaseStakeErasure(agreement, staker, stakeAmount, currentStake);
+        emit IncreaseStakeErasure(agreement, staker, currentStake, stakeAmount);
     }
 
     //////////////////////
