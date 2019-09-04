@@ -402,7 +402,7 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         require(IRelay(_RELAY).withdraw(staker, address(this), stakeAmount), "Failed to withdraw");
 
         uint256 oldAllowance = INMR(_TOKEN).allowance(address(this), agreement);
-        uint256 newAmount = oldAllowance + stakeAmount;
+        uint256 newAmount = oldAllowance.add(stakeAmount);
         require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAmount), "Failed to approve");
 
         griefingAgreement.increaseStake(currentStake, stakeAmount);
