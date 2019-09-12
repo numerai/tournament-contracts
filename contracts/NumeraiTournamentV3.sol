@@ -100,14 +100,6 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         _;
     }
 
-    /// @notice constructor function, used to enforce implementation address
-    constructor() public {
-        require(
-            address(this) == address(0x9959666590F01cA989E21175179Df9D2141B2819),
-            "incorrect deployment address - check submitting account & nonce."
-        );
-    }
-
     /// @notice Initializer function called at time of deployment
     /// @param _owner The address of the wallet to handle permission control
     function initialize(
