@@ -398,8 +398,6 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     /// @param currentStake The amount of NMR in wei already staked on the agreement
     /// @param stakeAmount The amount of NMR in wei to incease the stake with this agreement
     function increaseStakeErasure(address agreement, address staker, uint256 currentStake, uint256 stakeAmount) public onlyManagerOrOwner {
-        IErasureStake griefingAgreement = IErasureStake(agreement);
-
         require(stakeAmount > 0, "Cannot stake zero NMR");
 
         uint256 oldBalance = INMR(_TOKEN).balanceOf(address(this));
@@ -410,7 +408,7 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         uint256 newAmount = oldAllowance.add(stakeAmount);
         require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAmount), "Failed to approve");
 
-        griefingAgreement.increaseStake(currentStake, stakeAmount);
+        IErasureStake(agreement).increaseStake(currentStake, stakeAmount);
 
         uint256 newBalance = INMR(_TOKEN).balanceOf(address(this));
         require(oldBalance == newBalance, "Balance before/after did not match");
