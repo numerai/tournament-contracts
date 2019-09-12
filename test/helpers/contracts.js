@@ -46,7 +46,13 @@ async function _deployMockNMR() {
     deployer.signer = deployer.provider.getSigner(deployAddress);
     await increaseNonce(deployer.signer, 1);
 
-    const contract = await deployer.deploy(MockNMR, {});
+    const contract = await deployer.deploy(MockNMR);
+
+    await contract.mintMockTokens('0x0000000000000000000000000000000000000001', utils.parseEther("100").toString());
+    await contract.mintMockTokens('0x0000000000000000000000000000000000000002', utils.parseEther("100").toString());
+    await contract.mintMockTokens('0x0000000000000000000000000000000000000003', utils.parseEther("100").toString());
+    await contract.mintMockTokens('0x0000000000000000000000000000000000000004', utils.parseEther("100").toString());
+    await contract.mintMockTokens('0x0000000000000000000000000000000000000005', utils.parseEther("100").toString());
 
     return contract;
 }
