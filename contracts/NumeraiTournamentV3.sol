@@ -383,14 +383,26 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     }
 
     /// @notice Internal function to stake on Erasure agreement
-    /// @param agreement The address of the agreement contract
+    ///         Can only be called by Numerai
+    ///         This function is intended as a bridge to allow for our custodied user accounts
+    ///         (ie. the first million addresses), to stake in an Erasure agreement. Erasure
+    ///         agreements assume an ERC-20 token, and the way we did custody doesn't quite fit
+    ///         in the normal ERC-20 way of doing things. Ideally, we would be able to call
+    ///         `changeApproval` on behalf of our custodied accounts, but that is unfortunately
+    ///         not possible.
+    ///         Instead what we have to do is `withdraw` the NMR into this contract and then call
+    ///         `changeApproval` on this contract before calling `increaseStake` on the Erasure
+    ///         agreement. The NMR is then taken from this contract to increase the stake.
+    /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
     /// @param staker The address of the staker
-    /// @param stakeAmount The amount of NMR in wei already staked on the agreement
+    /// @param currentStake The amount of NMR in wei already staked on the agreement
     /// @param stakeAmount The amount of NMR in wei to incease the stake with this agreement
     function increaseStakeErasure(address agreement, address staker, uint256 currentStake, uint256 stakeAmount) public onlyManagerOrOwner {
         IErasureStake griefingAgreement = IErasureStake(agreement);
 
         require(stakeAmount > 0, "Cannot stake zero NMR");
+
+        uint256 oldBalance = INMR(_TOKEN).balanceOf(address(this));
 
         require(IRelay(_RELAY).withdraw(staker, address(this), stakeAmount), "Failed to withdraw");
 
@@ -399,6 +411,9 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
         require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAmount), "Failed to approve");
 
         griefingAgreement.increaseStake(currentStake, stakeAmount);
+
+        uint256 newBalance = INMR(_TOKEN).balanceOf(address(this));
+        require(oldBalance == newBalance, "Balance before/after did not match");
 
         emit IncreaseStakeErasure(agreement, staker, currentStake, stakeAmount);
     }
