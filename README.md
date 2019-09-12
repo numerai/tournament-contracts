@@ -19,6 +19,7 @@
 | ProxyAdmin | Main | [0x047EbD5F7431c005c9D3a59CE0675ac998417e9d](https://etherscan.io/address/0x047EbD5F7431c005c9D3a59CE0675ac998417e9d) | Engineering Multisig |
 | NumeraiTournamentV1 | Logic | [0xb2C4DbB78c7a34313600aD2e6E35d188ab4381a8](https://etherscan.io/address/0xb2C4DbB78c7a34313600aD2e6E35d188ab4381a8) |
 | NumeraiTournamentV2 | Logic | [0x4a0E8E6E323E45f8f63De2389407BF6670B8E716](https://etherscan.io/address/0x4a0E8E6E323E45f8f63De2389407BF6670B8E716) |
+| NumeraiTournamentV3 | Logic | [0x6d43a08c5297951746715b8cf0d4c4b04fef4b0f](https://etherscan.io/address/0x6d43a08c5297951746715b8cf0d4c4b04fef4b0f) |
 | **Wallets** |
 | Engineering Multisig | Main | [0x0000000000377D181A0ebd08590c6B399b272000](https://etherscan.io/address/0x0000000000377D181A0ebd08590c6B399b272000) |
 | Hot Wallet | External | [0xdc6997b078C709327649443D0765BCAa8e37aA6C](https://etherscan.io/address/0xdc6997b078C709327649443D0765BCAa8e37aA6C) |
