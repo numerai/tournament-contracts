@@ -3,8 +3,9 @@ pragma solidity >=0.5.0 <0.6.0;
 import "./Pausable.sol";
 import "./interfaces/IRelay.sol";
 import "./interfaces/INMR.sol";
+import "./interfaces/IErasureStake.sol";
 import "./helpers/zos-lib/Initializable.sol";
-import "./erasure/agreements/SimpleGriefing.sol";
+import "./helpers/openzeppelin-solidity/math/SafeMath.sol";
 
 
 /// @title Numerai Tournament logic contract version 3
@@ -387,7 +388,7 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
     /// @param stakeAmount The amount of NMR in wei already staked on the agreement
     /// @param stakeAmount The amount of NMR in wei to incease the stake with this agreement
     function increaseStakeErasure(address agreement, address staker, uint256 currentStake, uint256 stakeAmount) public onlyManagerOrOwner {
-        SimpleGriefing griefingAgreement = SimpleGriefing(agreement);
+        IErasureStake griefingAgreement = IErasureStake(agreement);
 
         require(stakeAmount > 0, "Cannot stake zero NMR");
 
