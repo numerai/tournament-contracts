@@ -38,7 +38,7 @@ describe('Test stake flow', () => {
     it('should fail create stake without approve', async () => {
         const tag = utils.formatBytes32String('');
 
-        await assert.revertWith(tournamentContract.stake(1, 1, tag, utils.parseEther("1"), 0), "insufficient allowance");
+        await assert.revert(tournamentContract.stake(1, 1, tag, utils.parseEther("1"), 0));
 
         const stake = await tournamentContract.getStakeV2(1, 1, constants.multiSigWallet, tag);
         assert.equal(stake.amount, 0, 'stake not set');
