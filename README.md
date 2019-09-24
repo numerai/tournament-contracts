@@ -15,7 +15,7 @@
 | NumeraireDelegateV3 | Logic | [0x29F709e42C95C604BA76E73316d325077f8eB7b2](https://etherscan.io/address/0x29F709e42C95C604BA76E73316d325077f8eB7b2) |
 | UpgradeDelegate | Logic | [0x3361F79f0819fD5feaA37bea44C8a33d98b2A1cd](https://etherscan.io/address/0x3361F79f0819fD5feaA37bea44C8a33d98b2A1cd) |
 | **Tournament** |
-| AdminUpgradeabilityProxy | Main | [0x9DCe896DdC20BA883600176678cbEe2B8BA188A9](https://etherscan.io/address/0x9DCe896DdC20BA883600176678cbEe2B8BA188A9) | ProxyAdmin | Hot Wallet | NumeraiTournamentV2 |
+| AdminUpgradeabilityProxy | Main | [0x9DCe896DdC20BA883600176678cbEe2B8BA188A9](https://etherscan.io/address/0x9DCe896DdC20BA883600176678cbEe2B8BA188A9) | ProxyAdmin | Hot Wallet | NumeraiTournamentV3 |
 | ProxyAdmin | Main | [0x047EbD5F7431c005c9D3a59CE0675ac998417e9d](https://etherscan.io/address/0x047EbD5F7431c005c9D3a59CE0675ac998417e9d) | Engineering Multisig |
 | NumeraiTournamentV1 | Logic | [0xb2C4DbB78c7a34313600aD2e6E35d188ab4381a8](https://etherscan.io/address/0xb2C4DbB78c7a34313600aD2e6E35d188ab4381a8) |
 | NumeraiTournamentV2 | Logic | [0x4a0E8E6E323E45f8f63De2389407BF6670B8E716](https://etherscan.io/address/0x4a0E8E6E323E45f8f63De2389407BF6670B8E716) |
