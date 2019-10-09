@@ -7,7 +7,8 @@ const ethers = require('ethers');
 const NumeraiTournament = require('../../build/NumeraiTournamentV3.json');
 const Relay = require('../../build/Relay.json');
 const MockNMR = require('../../build/MockNMR.json');
-const OneWayGriefing = require('../../build/SimpleGriefing.json');
+const SimpleGriefingFactory = require('../../build/SimpleGriefing_Factory.json');
+const SimpleGriefing = require('../../build/SimpleGriefing.json');
 
 async function increaseNonce(signer, increaseTo) {
     const currentNonce = await signer.getTransactionCount();
@@ -110,12 +111,64 @@ async function getRelay() {
     return await _relayContract;
 }
 
+function createSelector(functionName, abiTypes) {
+    const joinedTypes = abiTypes.join(",");
+    const functionSignature = `${functionName}(${joinedTypes})`;
+
+    const selector = ethers.utils.hexDataSlice(
+        ethers.utils.keccak256(ethers.utils.toUtf8Bytes(functionSignature)),
+        0,
+        4
+    );
+    return selector;
+}
+
+function abiEncodeWithSelector(functionName, abiTypes, abiValues) {
+    const abiEncoder = new ethers.utils.AbiCoder();
+    const initData = abiEncoder.encode(abiTypes, abiValues);
+    const selector = createSelector(
+        functionName,
+        abiTypes
+    );
+    const encoded = selector + initData.slice(2);
+    return encoded;
+}
+
 async function deployAgreement(staker, counterparty, operator = ethers.constants.AddressZero) {
     const deployer = new etherlime.EtherlimeGanacheDeployer(constants.fundedAccountPrivateKey);
 
-    const contract = await deployer.deploy(OneWayGriefing, {});
-    // 4 = Inf griefing type
-    await contract.initialize(constants.nmrContractAddress, operator, staker, counterparty, 0, 4, '0x0');
+    const template = await deployer.deploy(SimpleGriefing, {});
+    const factory = await deployer.deploy(SimpleGriefingFactory, {}, template.contractAddress, template.contractAddress);
+
+    const createTypes = [
+        "address",
+        "address",
+        "address",
+        "uint256",
+        "uint8",
+        "bytes"
+    ];
+
+    const createArgs = [
+        operator,
+        staker,
+        counterparty,
+        0,
+        1, // 1 = Inf griefing type
+        '0x0'
+    ];
+
+    const callData = abiEncodeWithSelector("initialize", createTypes, createArgs);
+
+    const txn = await factory.create(callData);
+    const receipt = await factory.verboseWaitForTransaction(txn);
+    const expectedEvent = "InstanceCreated";
+    const eventFound = receipt.events.find(
+        emittedEvent => emittedEvent.event === expectedEvent,
+        "There is no such event"
+    );
+
+    const contract = deployer.wrapDeployedContract(SimpleGriefing, eventFound.args.instance);
     return contract;
 }
 
