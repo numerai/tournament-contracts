@@ -11,6 +11,8 @@ describe('Test stake flow', () => {
     before(async () => {
         tournamentContract = await contracts.getTournament();
         nmrContract = await contracts.getMockNMR();
+        const relay = await contracts.getRelay();
+        await relay.transferManagement(tournamentContract.contractAddress);
     })
 
     it('should create tournament', async () => {

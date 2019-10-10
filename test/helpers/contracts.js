@@ -9,6 +9,7 @@ const Relay = require('../../build/Relay.json');
 const MockNMR = require('../../build/MockNMR.json');
 const SimpleGriefingFactory = require('../../build/SimpleGriefing_Factory.json');
 const SimpleGriefing = require('../../build/SimpleGriefing.json');
+const NumeraiErasureV1 = require('../../build/NumeraiErasureV1.json');
 
 async function increaseNonce(signer, increaseTo) {
     const currentNonce = await signer.getTransactionCount();
@@ -99,7 +100,7 @@ async function _deployRelay() {
     deployer.signer = deployer.provider.getSigner(deployAddress);
     await increaseNonce(deployer.signer, 5);
 
-    const contract = await deployer.deploy(Relay, {}, constants.tournamenContractAddress);
+    const contract = await deployer.deploy(Relay, {}, constants.multiSigWallet);
 
     return contract;
 }
@@ -134,12 +135,25 @@ function abiEncodeWithSelector(functionName, abiTypes, abiValues) {
     return encoded;
 }
 
-async function deployAgreement(staker, counterparty, operator = ethers.constants.AddressZero) {
+async function deployAgreementFactory() {
     const deployer = new etherlime.EtherlimeGanacheDeployer(constants.fundedAccountPrivateKey);
 
     const template = await deployer.deploy(SimpleGriefing, {});
     const factory = await deployer.deploy(SimpleGriefingFactory, {}, template.contractAddress, template.contractAddress);
 
+    return factory;
+}
+
+async function deployNumeraiErasureV1() {
+    const deployer = new etherlime.EtherlimeGanacheDeployer(constants.fundedAccountPrivateKey);
+
+    const contract = await deployer.deploy(NumeraiErasureV1, {});
+    await contract.initialize(constants.fundedAccountAddress);
+
+    return contract;
+}
+
+async function createSimpleGriefingCallData(staker, counterparty, operator = ethers.constants.AddressZero) {
     const createTypes = [
         "address",
         "address",
@@ -160,16 +174,7 @@ async function deployAgreement(staker, counterparty, operator = ethers.constants
 
     const callData = abiEncodeWithSelector("initialize", createTypes, createArgs);
 
-    const txn = await factory.create(callData);
-    const receipt = await factory.verboseWaitForTransaction(txn);
-    const expectedEvent = "InstanceCreated";
-    const eventFound = receipt.events.find(
-        emittedEvent => emittedEvent.event === expectedEvent,
-        "There is no such event"
-    );
-
-    const contract = deployer.wrapDeployedContract(SimpleGriefing, eventFound.args.instance);
-    return contract;
+    return callData;
 }
 
 // It turns out etherlime only supports calling `contract.from` on the built in addresses
@@ -184,6 +189,8 @@ module.exports = {
     getMockNMR,
     getTournament,
     getRelay,
-    deployAgreement,
+    deployAgreementFactory,
+    deployNumeraiErasureV1,
+    createSimpleGriefingCallData,
     contractFrom,
 };
