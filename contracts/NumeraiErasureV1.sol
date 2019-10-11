@@ -25,6 +25,28 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         uint256 amountAdded
     );
 
+    event Reward(
+        address indexed agreement,
+        address indexed staker,
+        uint256 oldStakeAmount,
+        uint256 amountAdded
+    );
+
+    event Punish(
+        address indexed agreement,
+        address indexed staker,
+        uint256 oldStakeAmount,
+        uint256 amountPunished,
+        bytes message
+    );
+
+    event ReleaseStake(
+        address indexed agreement,
+        address indexed staker,
+        uint256 oldStakeAmount,
+        uint256 amountReleased
+    );
+
     // set the address of the NMR token as a constant (stored in runtime code)
     address private constant _TOKEN = address(
         0x1776e1F26f98b1A5dF9cD347953a26dd3Cb46671
@@ -80,7 +102,7 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         emit IncreaseStake(agreement, staker, currentStake, stakeAmount);
     }
 
-    /// @notice Internal function to create a an Erasure agreement stake
+    /// @notice Internal function to create an Erasure agreement stake
     /// @param factory The address of the agreement factory. Must conform to iFactory interface
     /// @param agreement The address of the agreement contract that will be created. Get this value by running factory.getSaltyInstance(...)
     /// @param staker The address of the staker
@@ -97,5 +119,61 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         increaseStake(agreement, staker, 0, stakeAmount);
 
         emit CreateStake(agreement, staker, stakeAmount);
+    }
+
+    /// @notice Internal function to reward an Erasure agreement stake
+    /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
+    /// @param staker The address of the staker
+    /// @param currentStake The amount of NMR in wei already staked on the agreement
+    /// @param amountToAdd The amount of NMR in wei to incease the stake with this agreement
+    function reward(
+        address agreement, address staker, uint256 currentStake, uint256 amountToAdd
+    ) public onlyManagerOrOwner whenNotPaused {
+        require(amountToAdd > 0, "Cannot add zero NMR");
+
+        uint256 oldBalance = INMR(_TOKEN).balanceOf(address(this));
+
+        require(INMR(_TOKEN).transferFrom(msg.sender, address(this), amountToAdd), "Failed to transferFrom");
+
+        uint256 oldAllowance = INMR(_TOKEN).allowance(address(this), agreement);
+        uint256 newAmount = oldAllowance.add(amountToAdd);
+        require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAmount), "Failed to approve");
+
+        IErasureStake(agreement).reward(currentStake, amountToAdd);
+
+        uint256 newBalance = INMR(_TOKEN).balanceOf(address(this));
+        require(oldBalance == newBalance, "Balance before/after did not match");
+
+        emit Reward(agreement, staker, currentStake, amountToAdd);
+    }
+
+    /// @notice Internal function to punish an Erasure agreement stake
+    /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
+    /// @param staker The address of the staker
+    /// @param currentStake The amount of NMR in wei already staked on the agreement
+    /// @param punishment The amount of NMR in wei to punish the stake with this agreement
+    function punish(
+        address agreement, address staker, uint256 currentStake, uint256 punishment, bytes memory message
+    ) public onlyManagerOrOwner whenNotPaused {
+        require(punishment > 0, "Cannot punish zero NMR");
+
+        IErasureStake(agreement).punish(currentStake, punishment, message);
+
+        emit Punish(agreement, staker, currentStake, punishment, message);
+    }
+
+    /// @notice Internal function to release an Erasure agreement stake
+    /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
+    /// @param staker The address of the staker
+    /// @param currentStake The amount of NMR in wei already staked on the agreement
+    /// @param amountToRelease The amount of NMR in wei to release back to the staker
+    function releaseStake(
+        address agreement, address staker, uint256 currentStake, uint256 amountToRelease
+    ) public onlyManagerOrOwner whenNotPaused {
+        require(amountToRelease > 0, "Cannot punish zero NMR");
+
+        IErasureStake(agreement).releaseStake(currentStake, amountToRelease);
+
+        emit ReleaseStake(agreement, staker, currentStake, amountToRelease);
     }
 }
