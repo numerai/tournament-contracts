@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 # kill ganache on exit
 trap 'kill $(jobs -p)' EXIT
 

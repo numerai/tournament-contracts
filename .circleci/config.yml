@@ -24,6 +24,7 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}
 
       - run: bash run-tests.sh
+      - run: bash run-ganache-deploy.sh
 
 workflows:
   version: 2

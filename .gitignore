@@ -7,7 +7,8 @@ node_modules/
 temp/
 *.bin
 *.swp
-*.env
+.env
+mainnet.env
 *.etherlime-store
 coverage/
 yarn-debug.log*
