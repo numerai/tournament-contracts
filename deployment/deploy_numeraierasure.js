@@ -44,7 +44,7 @@ Deploy NumeraiErasureV1
     // deploy NumeraiErasureV1 template
     c.NumeraiErasureV1.template = await deployer.deployAndVerify(c.NumeraiErasureV1.artifact);
 
-    // create initialize(...) encodeed call. This will be called by the
+    // create initialize(...) encoded call. This will be called by the
     // AdminUpgradeabilityProxy, when initializing the NumeraiErasureV1 template
     const initializeInterface = new ethers.utils.Interface(["initialize(address _owner)"]);
     const initializeCallData = await initializeInterface.functions.initialize.encode([deployer.signer.address]); // set the owner to the deployer, and then transfer ownership at the end of this script

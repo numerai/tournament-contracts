@@ -78,11 +78,40 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         Pausable.initialize(_owner);
     }
 
+    /////////////////////////////
+    // Fund Recovery Functions //
+    /////////////////////////////
+
+    /// @notice Recover the ETH sent to this contract address
+    ///         Can only be called by the owner
+    /// @param recipient The address of the recipient
+    function recoverETH(address payable recipient) public onlyOwner {
+        recipient.transfer(address(this).balance);
+    }
+
+    /// @notice Recover the NMR sent to this address
+    ///         Can only be called by the owner
+    /// @param recipient The address of the recipient
+    function recoverNMR(address payable recipient) public onlyOwner {
+        uint256 balance = INMR(_TOKEN).balanceOf(address(this));
+        require(INMR(_TOKEN).transfer(recipient, balance), "transfer failed");
+    }
+
+
+    ////////////////////////
+    // Internal Functions //
+    ////////////////////////
+
     function _approveNMR(address agreement, uint256 amountToAdd) internal {
         uint256 oldAllowance = INMR(_TOKEN).allowance(address(this), agreement);
         uint256 newAllowance = oldAllowance.add(amountToAdd);
         require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAllowance), "Failed to approve");
     }
+
+
+    ///////////////////////
+    // Erasure Functions //
+    ///////////////////////
 
     /// @notice Owned function to stake on Erasure agreement
     ///         Can only be called by Numerai
