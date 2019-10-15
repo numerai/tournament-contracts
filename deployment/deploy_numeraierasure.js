@@ -6,32 +6,21 @@ const deploy = async (network, secret) => {
     require("dotenv").config({ path: path.resolve(__dirname, `../${network}.env`) });
 
     let c = {
-        NMR: {
-            artifact: require("../build/MockNMR.json"),
-            mainnet: {
-                address: "0x1776e1F26f98b1A5dF9cD347953a26dd3Cb46671"
-            },
-            rinkeby: {
-                address: "0x1A758E75d1082BAab0A934AFC7ED27Dbf6282373"
-            },
-            ganache: {
-                address: "0x1776e1F26f98b1A5dF9cD347953a26dd3Cb46671"
-            }
-        },
         NumeraiErasureV1: {
             artifact: require("../build/NumeraiErasureV1.json"),
+        },
+        AdminUpgradeabilityProxy: {
+            artifact: require("../build/AdminUpgradeabilityProxy.json"),
         },
     };
 
     let deployer;
-    let multisig;
+    const multisig = "0x0000000000377d181a0ebd08590c6b399b272000";
+    const hotwallet = "0xdc6997b078C709327649443D0765BCAa8e37aA6C";
 
     let defaultGas = ethers.utils.parseUnits("15", "gwei");
 
     if (network == "mainnet") {
-        // set owner address
-        multisig = "0x0000000000377d181a0ebd08590c6b399b272000";
-
         // initialize deployer
         deployer = await new etherlime.InfuraPrivateKeyDeployer(
             process.env.DEPLOYMENT_PRIV_KEY,
@@ -45,21 +34,35 @@ const deploy = async (network, secret) => {
         // initialize deployer
         deployer = new etherlime.EtherlimeGanacheDeployer(process.env.DEPLOYMENT_PRIV_KEY);
         deployer.deployAndVerify = deployer.deploy;
-        multisig = deployer.signer.address;
     }
 
     console.log(`
 Deploy NumeraiErasureV1
           `);
 
-    await deployer.deployAndVerify(c.NumeraiErasureV1.artifact).then(wrap => {
-        c.NumeraiErasureV1[network] = {
-            wrap: wrap,
-            address: wrap.contractAddress
-        };
-    });
+    // deploy NumeraiErasureV1 template
+    c.NumeraiErasureV1.template = await deployer.deployAndVerify(c.NumeraiErasureV1.artifact);
 
-    console.log(`address ${c.NumeraiErasureV1[network].address}`);
+    // create initialize(...) encodeed call. This will be called by the
+    // AdminUpgradeabilityProxy, when initializing the NumeraiErasureV1 template
+    const initializeInterface = new ethers.utils.Interface(["initialize(address _owner)"]);
+    const initializeCallData = await initializeInterface.functions.initialize.encode([deployer.signer.address]);
+
+    // deploy AdminUpgradeabilityProxy
+    c.AdminUpgradeabilityProxy.instance = await deployer.deployAndVerify(
+        c.AdminUpgradeabilityProxy.artifact,
+        false,
+        c.NumeraiErasureV1.template.contractAddress,
+        multisig,
+        initializeCallData,
+    );
+
+    // wrap the deployed AdminUpgradeabilityProxy as a NumeraiErasureV1
+    c.NumeraiErasureV1.instance = deployer.wrapDeployedContract(c.NumeraiErasureV1.artifact, c.AdminUpgradeabilityProxy.instance.contractAddress);
+
+    // transfer ownership/management
+    await c.NumeraiErasureV1.instance.transferManagement(hotwallet);
+    await c.NumeraiErasureV1.instance.transferOwnership(multisig);
 };
 
 module.exports = { deploy };

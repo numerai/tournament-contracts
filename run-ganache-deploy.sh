@@ -7,7 +7,7 @@ trap 'kill $(jobs -p)' EXIT
 
 yarn run ganache > ganache.log &
 
-OUTPUT="$(yarn run deploy-numeraierasure ganache)"
+OUTPUT="$(yarn run deploy-numeraierasure ganache 2>&1)"
 
 echo -e "$OUTPUT"
 
