@@ -69,6 +69,8 @@ describe('Test Erasure agreements', async () => {
         assert.strictEqual(balance.toString(), utils.parseEther("90").toString(), 'balance is wrong for user');
 
         agreement = deployer.wrapDeployedContract(SimpleGriefing, agreementAddress);
+        balance = await agreement.getStake(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("10").toString(), 'balance is wrong for stake');
     });
 
     it('should increaseStake', async () => {
@@ -95,6 +97,8 @@ describe('Test Erasure agreements', async () => {
 
         let balance = await mockNMRContract.balanceOf(userAddress);
         assert.strictEqual(balance.toString(), utils.parseEther("75").toString(), 'balance is wrong for user');
+        balance = await agreement.getStake(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("25").toString(), 'balance is wrong for stake');
     });
 
     it('should reward', async () => {
@@ -122,6 +126,8 @@ describe('Test Erasure agreements', async () => {
 
         let balance = await mockNMRContract.balanceOf(userAddress);
         assert.strictEqual(balance.toString(), utils.parseEther("75").toString(), 'balance is wrong for user');
+        balance = await agreement.getStake(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("35").toString(), 'balance is wrong for stake');
     });
 
     it('should punish', async () => {
@@ -149,6 +155,8 @@ describe('Test Erasure agreements', async () => {
 
         let balance = await mockNMRContract.balanceOf(userAddress);
         assert.strictEqual(balance.toString(), utils.parseEther("75").toString(), 'balance is wrong for user');
+        balance = await agreement.getStake(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("25").toString(), 'balance is wrong for stake');
     });
 
     it('should releaseStake partial', async () => {
@@ -176,6 +184,8 @@ describe('Test Erasure agreements', async () => {
 
         let balance = await mockNMRContract.balanceOf(userAddress);
         assert.strictEqual(balance.toString(), utils.parseEther("85").toString(), 'balance is wrong for user');
+        balance = await agreement.getStake(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("15").toString(), 'balance is wrong for stake');
     });
 
     it('should releaseStake full', async () => {
@@ -203,5 +213,75 @@ describe('Test Erasure agreements', async () => {
 
         let balance = await mockNMRContract.balanceOf(userAddress);
         assert.strictEqual(balance.toString(), utils.parseEther("100").toString(), 'balance is wrong for user');
+        balance = await agreement.getStake(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("0").toString(), 'balance is wrong for stake');
+    });
+
+    it('should resolveAndRelease reward', async () => {
+        const releaseAmount = utils.parseEther("15");
+        const amountToChange = utils.parseEther("40");
+        const oldStakeAmount = utils.parseEther("0");
+
+        let txn = await numeraiErasureContract.resolveAndReleaseStake(agreement.contractAddress, userAddress, oldStakeAmount, releaseAmount, amountToChange);
+        const receipt = await numeraiErasureContract.verboseWaitForTransaction(txn);
+        const stakeEvent = receipt.events.find(
+            emittedEvent => emittedEvent.event === "ResolveAndReleaseStake",
+            "There is no such event"
+        );
+
+        assert.isDefined(stakeEvent);
+        assert.equal(stakeEvent.args.agreement, agreement.contractAddress);
+        assert.equal(stakeEvent.args.staker, userAddress);
+        assert.strictEqual(
+            stakeEvent.args.amountReleased.toString(),
+            releaseAmount.toString(),
+        );
+        assert.strictEqual(
+            stakeEvent.args.oldStakeAmount.toString(),
+            oldStakeAmount.toString(),
+        );
+        assert.strictEqual(
+            stakeEvent.args.amountStakeChanged.toString(),
+            amountToChange.toString(),
+        );
+
+        let balance = await mockNMRContract.balanceOf(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("115").toString(), 'balance is wrong for user');
+        balance = await agreement.getStake(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("25").toString(), 'balance is wrong for stake');
+    });
+
+    it('should resolveAndRelease punish', async () => {
+        const releaseAmount = utils.parseEther("5");
+        const amountToChange = utils.parseEther("-10");
+        const oldStakeAmount = utils.parseEther("25");
+
+        let txn = await numeraiErasureContract.resolveAndReleaseStake(agreement.contractAddress, userAddress, oldStakeAmount, releaseAmount, amountToChange);
+        const receipt = await numeraiErasureContract.verboseWaitForTransaction(txn);
+        const stakeEvent = receipt.events.find(
+            emittedEvent => emittedEvent.event === "ResolveAndReleaseStake",
+            "There is no such event"
+        );
+
+        assert.isDefined(stakeEvent);
+        assert.equal(stakeEvent.args.agreement, agreement.contractAddress);
+        assert.equal(stakeEvent.args.staker, userAddress);
+        assert.strictEqual(
+            stakeEvent.args.amountReleased.toString(),
+            releaseAmount.toString(),
+        );
+        assert.strictEqual(
+            stakeEvent.args.oldStakeAmount.toString(),
+            oldStakeAmount.toString(),
+        );
+        assert.strictEqual(
+            stakeEvent.args.amountStakeChanged.toString(),
+            amountToChange.toString(),
+        );
+
+        let balance = await mockNMRContract.balanceOf(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("120").toString(), 'balance is wrong for user');
+        balance = await agreement.getStake(userAddress);
+        assert.strictEqual(balance.toString(), utils.parseEther("10").toString(), 'balance is wrong for stake');
     });
 });
