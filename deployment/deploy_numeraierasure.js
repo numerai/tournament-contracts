@@ -17,6 +17,7 @@ const deploy = async (network, secret) => {
     let deployer;
     const multisig = "0x0000000000377d181a0ebd08590c6b399b272000";
     const hotwallet = "0xdc6997b078C709327649443D0765BCAa8e37aA6C";
+    const proxyadmin = "0x047EbD5F7431c005c9D3a59CE0675ac998417e9d";
 
     let defaultGas = ethers.utils.parseUnits("15", "gwei");
 
@@ -46,14 +47,14 @@ Deploy NumeraiErasureV1
     // create initialize(...) encodeed call. This will be called by the
     // AdminUpgradeabilityProxy, when initializing the NumeraiErasureV1 template
     const initializeInterface = new ethers.utils.Interface(["initialize(address _owner)"]);
-    const initializeCallData = await initializeInterface.functions.initialize.encode([deployer.signer.address]);
+    const initializeCallData = await initializeInterface.functions.initialize.encode([deployer.signer.address]); // set the owner to the deployer, and then transfer ownership at the end of this script
 
     // deploy AdminUpgradeabilityProxy
     c.AdminUpgradeabilityProxy.instance = await deployer.deployAndVerify(
         c.AdminUpgradeabilityProxy.artifact,
         false,
         c.NumeraiErasureV1.template.contractAddress,
-        multisig,
+        proxyadmin, // proxyadmin is the admin of AdminUpgradeabilityProxy
         initializeCallData,
     );
 
