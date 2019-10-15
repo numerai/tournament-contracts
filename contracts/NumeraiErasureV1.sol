@@ -47,6 +47,14 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         uint256 amountReleased
     );
 
+    event ResolveAndReleaseStake(
+        address indexed agreement,
+        address indexed staker,
+        uint256 oldStakeAmount,
+        uint256 amountReleased,
+        int256 amountStakeChanged
+    );
+
     // set the address of the NMR token as a constant (stored in runtime code)
     address private constant _TOKEN = address(
         0x1776e1F26f98b1A5dF9cD347953a26dd3Cb46671
@@ -170,10 +178,33 @@ contract NumeraiErasureV1 is Initializable, Pausable {
     function releaseStake(
         address agreement, address staker, uint256 currentStake, uint256 amountToRelease
     ) public onlyManagerOrOwner whenNotPaused {
-        require(amountToRelease > 0, "Cannot punish zero NMR");
+        require(amountToRelease > 0, "Cannot release zero NMR");
 
         IErasureStake(agreement).releaseStake(currentStake, amountToRelease);
 
         emit ReleaseStake(agreement, staker, currentStake, amountToRelease);
+    }
+
+    /// @notice Internal function to resolve and then release an Erasure agreement stake
+    /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
+    /// @param staker The address of the staker
+    /// @param currentStake The amount of NMR in wei already staked on the agreement
+    /// @param amountToRelease The amount of NMR in wei to release back to the staker
+    /// @param amountToChangeStake The amount of NMR to change the stake with. If negative, then call `punish`, else call `reward`. This is called before `releaseStake`
+    function resolveAndReleaseStake(
+        address agreement, address staker, uint256 currentStake, uint256 amountToRelease, int256 amountToChangeStake
+    ) public onlyManagerOrOwner whenNotPaused {
+        uint256 newStake;
+        if(amountToChangeStake > 0) {
+            reward(agreement, staker, currentStake, uint256(amountToChangeStake));
+            newStake = currentStake.add(uint256(amountToChangeStake));
+        } else {
+            punish(agreement, staker, currentStake, uint256(-amountToChangeStake), "punish before release");
+            newStake = currentStake.sub(uint256(-amountToChangeStake));
+        }
+
+        IErasureStake(agreement).releaseStake(newStake, amountToRelease);
+
+        emit ResolveAndReleaseStake(agreement, staker, currentStake, amountToRelease, amountToChangeStake);
     }
 }
