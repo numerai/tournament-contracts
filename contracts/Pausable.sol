@@ -32,7 +32,7 @@ contract Pausable is Initializable, Manageable {
      * @dev Modifier to make a function callable only when the contract is not paused.
      */
     modifier whenNotPaused() {
-        require(!_paused);
+        require(!_paused, "contract is paused");
         _;
     }
 
@@ -40,7 +40,7 @@ contract Pausable is Initializable, Manageable {
      * @dev Modifier to make a function callable only when the contract is paused.
      */
     modifier whenPaused() {
-        require(_paused);
+        require(_paused, "expected contract to be paused");
         _;
     }
 
