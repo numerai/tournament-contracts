@@ -55,7 +55,7 @@ contract Pausable is Initializable, Manageable {
     /**
      * @dev called by the owner to unpause, returns to normal state
      */
-    function unpause() public onlyManagerOrOwner whenPaused {
+    function unpause() public onlyOwner whenPaused {
         _paused = false;
         emit Unpaused(msg.sender);
     }

@@ -10,9 +10,13 @@ import "./erasure/modules/iFactory.sol";
 
 contract NumeraiErasureV1 is Initializable, Pausable {
     using SafeMath for uint256;
-    using SafeMath for uint128;
 
     event CreateStake(
+        address indexed agreement,
+        address indexed staker
+    );
+
+    event CreateAndIncreaseStake(
         address indexed agreement,
         address indexed staker,
         uint256 amount
@@ -74,7 +78,13 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         Pausable.initialize(_owner);
     }
 
-    /// @notice Internal function to stake on Erasure agreement
+    function _approveNMR(address agreement, uint256 amountToAdd) internal {
+        uint256 oldAllowance = INMR(_TOKEN).allowance(address(this), agreement);
+        uint256 newAllowance = oldAllowance.add(amountToAdd);
+        require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAllowance), "Failed to approve");
+    }
+
+    /// @notice Owned function to stake on Erasure agreement
     ///         Can only be called by Numerai
     ///         This function is intended as a bridge to allow for our custodied user accounts
     ///         (ie. the first million addresses), to stake in an Erasure agreement. Erasure
@@ -98,9 +108,7 @@ contract NumeraiErasureV1 is Initializable, Pausable {
 
         require(IRelay(_RELAY).withdraw(staker, address(this), stakeAmount), "Failed to withdraw");
 
-        uint256 oldAllowance = INMR(_TOKEN).allowance(address(this), agreement);
-        uint256 newAmount = oldAllowance.add(stakeAmount);
-        require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAmount), "Failed to approve");
+        _approveNMR(agreement, stakeAmount);
 
         IErasureStake(agreement).increaseStake(currentStake, stakeAmount);
 
@@ -110,26 +118,39 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         emit IncreaseStake(agreement, staker, currentStake, stakeAmount);
     }
 
-    /// @notice Internal function to create an Erasure agreement stake
+    /// @notice Owned function to create an Erasure agreement stake
+    /// @param factory The address of the agreement factory. Must conform to iFactory interface
+    /// @param agreement The address of the agreement contract that will be created. Get this value by running factory.getSaltyInstance(...)
+    /// @param staker The address of the staker
+    /// @param callData The callData used to create the agreement
+    /// @param salt The salt used to create the agreement
+    function createStake(
+        address factory, address agreement, address staker, bytes memory callData, bytes32 salt
+    ) public onlyManagerOrOwner whenNotPaused {
+        require(iFactory(factory).createSalty(callData, salt) == agreement, "Unexpected agreement address");
+
+        emit CreateStake(agreement, staker);
+    }
+
+    /// @notice Owned function to create an Erasure agreement stake
     /// @param factory The address of the agreement factory. Must conform to iFactory interface
     /// @param agreement The address of the agreement contract that will be created. Get this value by running factory.getSaltyInstance(...)
     /// @param staker The address of the staker
     /// @param stakeAmount The amount of NMR in wei to incease the stake with this agreement
     /// @param callData The callData used to create the agreement
     /// @param salt The salt used to create the agreement
-    function createStake(
+    function createAndIncreaseStake(
         address factory, address agreement, address staker, uint256 stakeAmount, bytes memory callData, bytes32 salt
     ) public onlyManagerOrOwner whenNotPaused {
-        require(stakeAmount > 0, "Cannot stake zero NMR");
-
-        require(iFactory(factory).createSalty(callData, salt) == agreement, "Unexpected agreement address");
+        createStake(factory, agreement, staker, callData, salt);
 
         increaseStake(agreement, staker, 0, stakeAmount);
 
-        emit CreateStake(agreement, staker, stakeAmount);
+        emit CreateAndIncreaseStake(agreement, staker, stakeAmount);
     }
 
-    /// @notice Internal function to reward an Erasure agreement stake
+    /// @notice Owned function to reward an Erasure agreement stake
+    /// NMR tokens must be stored in this contract before this call.
     /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
     /// @param staker The address of the staker
     /// @param currentStake The amount of NMR in wei already staked on the agreement
@@ -141,21 +162,17 @@ contract NumeraiErasureV1 is Initializable, Pausable {
 
         uint256 oldBalance = INMR(_TOKEN).balanceOf(address(this));
 
-        require(INMR(_TOKEN).transferFrom(msg.sender, address(this), amountToAdd), "Failed to transferFrom");
-
-        uint256 oldAllowance = INMR(_TOKEN).allowance(address(this), agreement);
-        uint256 newAmount = oldAllowance.add(amountToAdd);
-        require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAmount), "Failed to approve");
+        _approveNMR(agreement, amountToAdd);
 
         IErasureStake(agreement).reward(currentStake, amountToAdd);
 
         uint256 newBalance = INMR(_TOKEN).balanceOf(address(this));
-        require(oldBalance == newBalance, "Balance before/after did not match");
+        require(oldBalance.sub(amountToAdd) == newBalance, "Balance before/after did not match");
 
         emit Reward(agreement, staker, currentStake, amountToAdd);
     }
 
-    /// @notice Internal function to punish an Erasure agreement stake
+    /// @notice Owned function to punish an Erasure agreement stake
     /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
     /// @param staker The address of the staker
     /// @param currentStake The amount of NMR in wei already staked on the agreement
@@ -165,12 +182,17 @@ contract NumeraiErasureV1 is Initializable, Pausable {
     ) public onlyManagerOrOwner whenNotPaused {
         require(punishment > 0, "Cannot punish zero NMR");
 
+        uint256 oldBalance = INMR(_TOKEN).balanceOf(address(this));
+
         IErasureStake(agreement).punish(currentStake, punishment, message);
+
+        uint256 newBalance = INMR(_TOKEN).balanceOf(address(this));
+        require(oldBalance == newBalance, "Balance before/after did not match");
 
         emit Punish(agreement, staker, currentStake, punishment, message);
     }
 
-    /// @notice Internal function to release an Erasure agreement stake
+    /// @notice Owned function to release an Erasure agreement stake
     /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
     /// @param staker The address of the staker
     /// @param currentStake The amount of NMR in wei already staked on the agreement
@@ -185,7 +207,7 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         emit ReleaseStake(agreement, staker, currentStake, amountToRelease);
     }
 
-    /// @notice Internal function to resolve and then release an Erasure agreement stake
+    /// @notice Owned function to resolve and then release an Erasure agreement stake
     /// @param agreement The address of the agreement contract. Must conform to IErasureStake interface
     /// @param staker The address of the staker
     /// @param currentStake The amount of NMR in wei already staked on the agreement
@@ -194,6 +216,8 @@ contract NumeraiErasureV1 is Initializable, Pausable {
     function resolveAndReleaseStake(
         address agreement, address staker, uint256 currentStake, uint256 amountToRelease, int256 amountToChangeStake
     ) public onlyManagerOrOwner whenNotPaused {
+        require(amountToChangeStake != 0, "Cannot resolve with zero NMR");
+
         uint256 newStake;
         if(amountToChangeStake > 0) {
             reward(agreement, staker, currentStake, uint256(amountToChangeStake));
@@ -203,7 +227,7 @@ contract NumeraiErasureV1 is Initializable, Pausable {
             newStake = currentStake.sub(uint256(-amountToChangeStake));
         }
 
-        IErasureStake(agreement).releaseStake(newStake, amountToRelease);
+        releaseStake(agreement, staker, newStake, amountToRelease);
 
         emit ResolveAndReleaseStake(agreement, staker, currentStake, amountToRelease, amountToChangeStake);
     }

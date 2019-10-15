@@ -20,19 +20,17 @@ describe('Test Erasure agreements', async () => {
         await relay.transferManagement(numeraiErasureContract.contractAddress);
 
         await mockNMRContract.transfer(userAddress, utils.parseEther("100"));
-        await mockNMRContract.transfer(numeraiErasureContract.signer.address, utils.parseEther("100"));
-
-        await mockNMRContract.from(numeraiErasureContract.signer).approve(numeraiErasureContract.contractAddress, utils.parseEther("11000000"));
+        await mockNMRContract.transfer(numeraiErasureContract.contractAddress, utils.parseEther("100"));
     });
 
-    it('should createStake', async () => {
+    it('should createAndIncreaseStake', async () => {
         const stakeAmount = utils.parseEther("10");
-        let salt = utils.formatBytes32String("should createStake");
+        let salt = utils.formatBytes32String("should createAndIncreaseStake");
         const callData = contracts.createSimpleGriefingCallData(userAddress, numeraiErasureContract.contractAddress, numeraiErasureContract.contractAddress);
 
         const agreementAddress = await factory.getSaltyInstance(callData, salt);
 
-        let txn = await numeraiErasureContract.createStake(factory.contractAddress, agreementAddress, userAddress, stakeAmount, callData, salt);
+        let txn = await numeraiErasureContract.createAndIncreaseStake(factory.contractAddress, agreementAddress, userAddress, stakeAmount, callData, salt);
 
         const receipt = await numeraiErasureContract.verboseWaitForTransaction(txn);
         const stakeEvent = receipt.events.find(
@@ -53,8 +51,8 @@ describe('Test Erasure agreements', async () => {
         );
 
         const stakeEventCreate = receipt.events.find(
-            emittedEvent => emittedEvent.event === "CreateStake",
-            "There is no createStake event"
+            emittedEvent => emittedEvent.event === "CreateAndIncreaseStake",
+            "There is no createAndIncreaseStake event"
         );
 
         assert.isDefined(stakeEventCreate);
@@ -63,6 +61,14 @@ describe('Test Erasure agreements', async () => {
         assert.strictEqual(
             stakeEventCreate.args.amount.toString(),
             stakeAmount.toString(),
+        );
+        assert.strictEqual(
+            stakeEventCreate.args.agreement,
+            agreementAddress,
+        );
+        assert.strictEqual(
+            stakeEventCreate.args.staker,
+            userAddress,
         );
 
         let balance = await mockNMRContract.balanceOf(userAddress);
