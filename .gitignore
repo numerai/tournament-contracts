@@ -9,6 +9,7 @@ temp/
 *.swp
 .env
 mainnet.env
+rinkeby.env
 *.etherlime-store
 coverage/
 yarn-debug.log*
