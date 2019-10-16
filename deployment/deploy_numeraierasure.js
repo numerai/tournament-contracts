@@ -21,11 +21,11 @@ const deploy = async (network, secret) => {
 
     let defaultGas = ethers.utils.parseUnits("15", "gwei");
 
-    if (network == "mainnet") {
+    if (network == "mainnet" || network == "rinkeby") {
         // initialize deployer
         deployer = await new etherlime.InfuraPrivateKeyDeployer(
             process.env.DEPLOYMENT_PRIV_KEY,
-            "mainnet",
+            network,
             process.env.INFURA_API_KEY,
             { gasPrice: defaultGas, etherscanApiKey: process.env.ETHERSCAN_API_KEY }
         );
@@ -63,7 +63,9 @@ Deploy NumeraiErasureV1
 
     // transfer ownership/management
     await c.NumeraiErasureV1.instance.transferManagement(hotwallet);
+    console.log(`Successfully transferred management to ${hotwallet}`);
     await c.NumeraiErasureV1.instance.transferOwnership(multisig);
+    console.log(`Successfully transferred ownership to ${multisig}`);
 };
 
 module.exports = { deploy };
