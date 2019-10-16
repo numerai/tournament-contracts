@@ -108,6 +108,24 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         require(INMR(_TOKEN).changeApproval(agreement, oldAllowance, newAllowance), "Failed to approve");
     }
 
+    ///////////////////
+    // NMR Functions //
+    ///////////////////
+
+    /// @notice Transfer NMR on behalf of a Numerai user
+    ///         Can only be called by Numerai
+    /// @dev Calls the NMR token contract through the relay contract
+    ///      Can only be used on the first 1 million ethereum addresses.
+    /// @param from The user address
+    /// @param to The recipient address
+    /// @param value The amount of NMR in wei
+    function withdraw(
+        address from,
+        address to,
+        uint256 value
+    ) public onlyManagerOrOwner whenNotPaused {
+        IRelay(_RELAY).withdraw(from, to, value);
+    }
 
     ///////////////////////
     // Erasure Functions //
