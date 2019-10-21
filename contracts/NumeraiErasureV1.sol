@@ -56,7 +56,8 @@ contract NumeraiErasureV1 is Initializable, Pausable {
         address indexed staker,
         uint256 oldStakeAmount,
         uint256 amountReleased,
-        int256 amountStakeChanged
+        uint256 amountStakeChanged,
+        bool isReward
     );
 
     // set the address of the NMR token as a constant (stored in runtime code)
@@ -259,23 +260,26 @@ contract NumeraiErasureV1 is Initializable, Pausable {
     /// @param staker The address of the staker
     /// @param currentStake The amount of NMR in wei already staked on the agreement
     /// @param amountToRelease The amount of NMR in wei to release back to the staker
-    /// @param amountToChangeStake The amount of NMR to change the stake with. If negative, then call `punish`, else call `reward`. This is called before `releaseStake`
+    /// @param amountToChangeStake The amount of NMR to change the stake with
+    /// @param isReward Boolean, if true then reward, else punish
     function resolveAndReleaseStake(
-        address agreement, address staker, uint256 currentStake, uint256 amountToRelease, int256 amountToChangeStake
+        address agreement, address staker, uint256 currentStake, uint256 amountToRelease, uint256 amountToChangeStake, bool isReward
     ) public onlyManagerOrOwner whenNotPaused {
-        require(amountToChangeStake != 0, "Cannot resolve with zero NMR");
+        require(amountToRelease != 0, "Cannot release with zero NMR");
 
-        uint256 newStake;
-        if(amountToChangeStake > 0) {
-            reward(agreement, staker, currentStake, uint256(amountToChangeStake));
-            newStake = currentStake.add(uint256(amountToChangeStake));
-        } else {
-            punish(agreement, staker, currentStake, uint256(-amountToChangeStake), "punish before release");
-            newStake = currentStake.sub(uint256(-amountToChangeStake));
+        uint256 newStake = currentStake;
+        if (amountToChangeStake != 0) {
+            if(isReward) {
+                reward(agreement, staker, currentStake, amountToChangeStake);
+                newStake = currentStake.add(amountToChangeStake);
+            } else {
+                punish(agreement, staker, currentStake, amountToChangeStake, "punish before release");
+                newStake = currentStake.sub(amountToChangeStake);
+            }
         }
 
         releaseStake(agreement, staker, newStake, amountToRelease);
 
-        emit ResolveAndReleaseStake(agreement, staker, currentStake, amountToRelease, amountToChangeStake);
+        emit ResolveAndReleaseStake(agreement, staker, currentStake, amountToRelease, amountToChangeStake, isReward);
     }
 }
