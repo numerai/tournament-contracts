@@ -228,7 +228,7 @@ describe('Test Erasure agreements', async () => {
         const amountToChange = utils.parseEther("40");
         const oldStakeAmount = utils.parseEther("0");
 
-        let txn = await numeraiErasureContract.resolveAndReleaseStake(agreement.contractAddress, userAddress, oldStakeAmount, releaseAmount, amountToChange);
+        let txn = await numeraiErasureContract.resolveAndReleaseStake(agreement.contractAddress, userAddress, oldStakeAmount, releaseAmount, amountToChange, true);
         const receipt = await numeraiErasureContract.verboseWaitForTransaction(txn);
         const stakeEvent = receipt.events.find(
             emittedEvent => emittedEvent.event === "ResolveAndReleaseStake",
@@ -259,10 +259,10 @@ describe('Test Erasure agreements', async () => {
 
     it('should resolveAndRelease punish', async () => {
         const releaseAmount = utils.parseEther("5");
-        const amountToChange = utils.parseEther("-10");
+        const amountToChange = utils.parseEther("10");
         const oldStakeAmount = utils.parseEther("25");
 
-        let txn = await numeraiErasureContract.resolveAndReleaseStake(agreement.contractAddress, userAddress, oldStakeAmount, releaseAmount, amountToChange);
+        let txn = await numeraiErasureContract.resolveAndReleaseStake(agreement.contractAddress, userAddress, oldStakeAmount, releaseAmount, amountToChange, false);
         const receipt = await numeraiErasureContract.verboseWaitForTransaction(txn);
         const stakeEvent = receipt.events.find(
             emittedEvent => emittedEvent.event === "ResolveAndReleaseStake",
