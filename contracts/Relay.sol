@@ -71,13 +71,13 @@ contract Relay is Manageable {
         _burn(amtThis);
     }
 
-    /// @notice Permanantly disable the relay contract
+    /// @notice Permanently disable the relay contract
     ///         Can only be called by Owner
     function disable() public onlyOwner onlyActive {
         active = false;
     }
 
-    /// @notice Permanantly disable token upgradability
+    /// @notice Permanently disable token upgradability
     ///         Can only be called by Owner
     function disableTokenUpgradability() public onlyOwner onlyActive {
         require(INMR(_TOKEN).createRound(uint256(0),uint256(0),uint256(0),uint256(0)));

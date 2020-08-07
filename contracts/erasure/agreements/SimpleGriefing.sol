@@ -10,7 +10,7 @@ import "../modules/Template.sol";
 
 /* Immediately engage with specific buyer
  * - Stake can be increased at any time.
- * - Counterparty can greif the staker at predefined ratio.
+ * - Counterparty can grief the staker at predefined ratio.
  *
  * NOTE:
  * - This top level contract should only perform access control and state transitions

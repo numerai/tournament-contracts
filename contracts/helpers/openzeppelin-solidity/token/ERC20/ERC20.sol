@@ -119,7 +119,7 @@ contract ERC20 is IERC20 {
     }
 
     /**
-     * @dev Transfer token for a specified addresses.
+     * @dev Transfer token to a specified address.
      * @param from The address to transfer from.
      * @param to The address to transfer to.
      * @param value The amount to be transferred.

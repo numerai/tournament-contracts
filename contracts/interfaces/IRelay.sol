@@ -13,11 +13,11 @@ interface IRelay {
     /// @notice Burn the NMR sent to address 0 and burn address
     function burnZeroAddress() external;
 
-    /// @notice Permanantly disable the relay contract
+    /// @notice Permanently disable the relay contract
     ///         Can only be called by Owner
     function disable() external;
 
-    /// @notice Permanantly disable token upgradability
+    /// @notice Permanently disable token upgradability
     ///         Can only be called by Owner
     function disableTokenUpgradability() external;
 
