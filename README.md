@@ -27,3 +27,9 @@
 | Hot Wallet               | External | [0x1248C66Bb94607Cf6b80D3AEc3E62A9FE421e210](https://etherscan.io/address/0x1248C66Bb94607Cf6b80D3AEc3E62A9FE421e210) |
 | Old Hot Wallet           | External | [0xdc6997b078C709327649443D0765BCAa8e37aA6C](https://etherscan.io/address/0xdc6997b078C709327649443D0765BCAa8e37aA6C) |
 | **Erasure**              |          |                                                                                                                       |                      |
+
+
+## Local Testing
+You need yarn:
+- `yarn install`
+- `./run-tests.sh`

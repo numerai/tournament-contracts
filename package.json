@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "dotenv": "^8.1.0",
-    "etherlime": "^2.2.0",
+    "etherlime": "^2.3.5",
     "etherlime-lib": "^1.1.3"
   }
 }
