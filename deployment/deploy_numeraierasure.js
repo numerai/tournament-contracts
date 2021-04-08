@@ -18,7 +18,7 @@ const deploy = async (network, secret) => {
 
   let deployer;
   const multisig = "0x0000000000377d181a0ebd08590c6b399b272000";
-  const hotwallet = "0xdc6997b078C709327649443D0765BCAa8e37aA6C";
+  const hotwallet = "0x1248C66Bb94607Cf6b80D3AEc3E62A9FE421e210";
   const proxyadmin = "0x047EbD5F7431c005c9D3a59CE0675ac998417e9d";
 
   let defaultGas = ethers.utils.parseUnits("15", "gwei");
