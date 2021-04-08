@@ -24,5 +24,6 @@
 | **Wallets**              |
 | ProxyAdmin               | Main     | [0x047EbD5F7431c005c9D3a59CE0675ac998417e9d](https://etherscan.io/address/0x047EbD5F7431c005c9D3a59CE0675ac998417e9d) | Engineering Multisig |
 | Engineering Multisig     | Main     | [0x0000000000377D181A0ebd08590c6B399b272000](https://etherscan.io/address/0x0000000000377D181A0ebd08590c6B399b272000) |
-| Hot Wallet               | External | [0xdc6997b078C709327649443D0765BCAa8e37aA6C](https://etherscan.io/address/0xdc6997b078C709327649443D0765BCAa8e37aA6C) |
+| Hot Wallet               | External | [0x1248C66Bb94607Cf6b80D3AEc3E62A9FE421e210](https://etherscan.io/address/0x1248C66Bb94607Cf6b80D3AEc3E62A9FE421e210) |
+| Old Hot Wallet           | External | [0xdc6997b078C709327649443D0765BCAa8e37aA6C](https://etherscan.io/address/0xdc6997b078C709327649443D0765BCAa8e37aA6C) |
 | **Erasure**              |          |                                                                                                                       |                      |
