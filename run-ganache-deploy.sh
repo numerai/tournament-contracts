@@ -14,7 +14,7 @@ echo -e "$OUTPUT"
 kill $PID
 
 ## exit error if failure found in output
-if echo "$OUTPUT" | grep 'failure' ; then
+if (echo "$OUTPUT" | grep -c 'failure') > 0; then
   echo "detected failure..."
   exit 1
 fi
