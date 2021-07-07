@@ -9,7 +9,7 @@ contract Manageable is Initializable, Ownable {
     event ManagementTransferred(address indexed previousManager, address indexed newManager);
 
     /**
-     * @dev The Managable constructor sets the original `manager` of the contract to the sender
+     * @dev The Manageable constructor sets the original `manager` of the contract to the sender
      * account.
      */
     function initialize(address sender) initializer public {

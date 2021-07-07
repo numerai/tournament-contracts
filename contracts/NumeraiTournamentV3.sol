@@ -320,7 +320,7 @@ contract NumeraiTournamentV3 is Initializable, Pausable {
 
         require(
             INMR(_TOKEN).transfer(staker, releaseAmount),
-            "Stake was not succesfully released"
+            "Stake was not successfully released"
         );
         _burn(burnAmount);
 
